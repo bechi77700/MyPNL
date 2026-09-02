@@ -80,7 +80,8 @@ export default async function ChargesPage({
                   <th className="px-3 py-3 font-medium">Catégorie</th>
                   <th className="px-3 py-[9px] text-right font-medium">Montant</th>
                   <th className="px-3 py-3 font-medium">Type</th>
-                  <th className="px-3 py-3 font-medium">Depuis</th>
+                  <th className="px-3 py-3 font-medium">Du</th>
+                  <th className="px-3 py-3 font-medium">Au</th>
                   <th className="px-5 py-3" />
                 </tr>
               </thead>
@@ -98,6 +99,9 @@ export default async function ChargesPage({
                       {TYPES.find((x) => x[0] === c.kind)?.[1] ?? c.kind}
                     </td>
                     <td className="chiffres px-3 py-[9px] text-faible">{c.effective_from}</td>
+                    <td className="chiffres px-3 py-[9px] text-faible">
+                      {c.effective_to ?? <span className="text-faible/60">en cours</span>}
+                    </td>
                     <td className="px-4 py-[9px] text-right">
                       <form action={supprimerCharge.bind(null, slug, c.id)}>
                         <button className="text-[11.5px] text-faible transition-colors hover:text-negatif">
@@ -154,8 +158,12 @@ export default async function ChargesPage({
             </select>
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-[11.5px] text-faible">Depuis</span>
+            <span className="text-[11.5px] text-faible">Du</span>
             <Champ name="effective_from" type="date" defaultValue={new Date().toISOString().slice(0, 10)} className="chiffres" />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[11.5px] text-faible">Au <span className="text-faible/60">(vide = en cours)</span></span>
+            <Champ name="effective_to" type="date" className="chiffres" />
           </label>
           <Bouton type="submit">Ajouter</Bouton>
         </form>

@@ -91,13 +91,17 @@ export async function enregistrerShipping(slug: string, form: FormData): Promise
 
 export async function ajouterCharge(slug: string, form: FormData): Promise<void> {
   const { supabase, shopId } = await boutique(slug);
+  const debut = String(form.get("effective_from") || new Date().toISOString().slice(0, 10));
+  const fin = String(form.get("effective_to") || "") || null;
+  if (fin && fin < debut) retour("custom-costs", slug, "erreur", "La date de fin est avant la date de début.");
   const { error } = await supabase.from("costs").insert({
     shop_id: shopId,
     label: String(form.get("label") ?? "").trim() || "Sans nom",
     category: String(form.get("category") ?? "fixed"),
     kind: String(form.get("kind") ?? "monthly"),
     amount: Number(form.get("amount")) || 0,
-    effective_from: String(form.get("effective_from") || new Date().toISOString().slice(0, 10)),
+    effective_from: debut,
+    effective_to: fin,
   });
   if (error) retour("custom-costs", slug, "erreur", error.message);
   revalidatePath(`/dashboard/${slug}/custom-costs`);
