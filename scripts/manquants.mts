@@ -7,7 +7,6 @@ const { createAdminClient } = await import("../src/lib/supabase/admin");
 const admin = createAdminClient();
 const { data: shop } = await admin.from("shops").select("id").eq("slug", process.argv[2]).single();
 const id = shop!.id as string;
-const { data: skus } = await admin.from("sku_overview", ).select("*").limit(0).then(() => ({ data: null })).catch(() => ({ data: null }));
 const { data: vue } = await admin.rpc("sku_overview", { p_shop: id, p_actifs_seulement: false });
 const rows = (vue ?? []) as { sku: string; title: string; variant_title: string | null; status: string; cost: number; orders_count: number; units: number; exclude_from_shipping: boolean }[];
 const sans = rows.filter((r) => Number(r.cost) === 0 && !r.exclude_from_shipping);
