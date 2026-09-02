@@ -1,6 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { formaterMontant, formaterNombre } from "@/lib/periode";
+
+/** Le formatage se fait ICI : on ne peut pas passer de fonction
+ *  d'un composant serveur a un composant client. */
+type Unite = "monnaie" | "nombre";
+
+function faireFormat(unite: Unite, devise: string) {
+  return (v: number) =>
+    unite === "monnaie" ? formaterMontant(v, devise, true) : formaterNombre(Math.round(v));
+}
+
+const jourCourt = (x: string) =>
+  new Date(x + "T12:00:00Z").toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+const moisCourt = (x: string) =>
+  new Date(x + "T12:00:00Z").toLocaleDateString("fr-FR", { month: "short", year: "2-digit" });
 
 /** Palette categorielle validee pour notre fond sombre (#17171b). */
 export const SERIES = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181"];
@@ -34,11 +49,13 @@ type Point = { x: string; y: number };
 
 /** Courbe + aire. Une seule serie : pas de legende, le titre suffit. */
 export function Courbe({
-  points, hauteur = 200, format, libelleX,
+  points, hauteur = 200, unite = "monnaie", devise = "USD", grain = "day",
 }: {
   points: Point[]; hauteur?: number;
-  format: (v: number) => string; libelleX: (x: string) => string;
+  unite?: Unite; devise?: string; grain?: "day" | "month";
 }) {
+  const format = faireFormat(unite, devise);
+  const libelleX = grain === "month" ? moisCourt : jourCourt;
   const [ref, L] = useLargeur();
   const [survol, setSurvol] = useState<number | null>(null);
   const marge = { g: 52, d: 10, h: 12, b: 24 };
@@ -117,11 +134,13 @@ export function Courbe({
 
 /** Colonnes. Barres fines, sommet arrondi, ecart de 2px entre voisines. */
 export function Colonnes({
-  points, hauteur = 180, format, libelleX,
+  points, hauteur = 180, unite = "nombre", devise = "USD", grain = "day",
 }: {
   points: Point[]; hauteur?: number;
-  format: (v: number) => string; libelleX: (x: string) => string;
+  unite?: Unite; devise?: string; grain?: "day" | "month";
 }) {
+  const format = faireFormat(unite, devise);
+  const libelleX = grain === "month" ? moisCourt : jourCourt;
   const [ref, L] = useLargeur();
   const [survol, setSurvol] = useState<number | null>(null);
   const marge = { g: 44, d: 10, h: 12, b: 24 };
@@ -185,12 +204,13 @@ export function Colonnes({
 
 /** Repartition des coûts : une barre empilee, ecarts de 2px en couleur de fond. */
 export function BarreRepartition({
-  parts, total, format,
+  parts, total, devise = "USD",
 }: {
   parts: { label: string; valeur: number }[];
   total: number;
-  format: (v: number) => string;
+  devise?: string;
 }) {
+  const format = faireFormat("monnaie", devise);
   const visibles = parts.filter((p) => p.valeur > 0);
   if (!visibles.length || total <= 0)
     return <p className="text-sm text-faible">Aucun coût sur la période.</p>;

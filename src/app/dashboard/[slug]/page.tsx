@@ -82,9 +82,6 @@ export default async function Dashboard({
     { label: "Charges", valeur: n(a.opex) + n(a.owner_salary) },
   ];
 
-  const jourCourt = (x: string) =>
-    new Date(x + "T12:00:00Z").toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
-
   return (
     <div className="px-7 py-8">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
@@ -157,7 +154,7 @@ export default async function Dashboard({
           <h2 className="text-sm font-medium text-texte">Répartition des coûts</h2>
           <span className="chiffres text-sm text-doux">{m(coutsTotaux)}</span>
         </div>
-        <BarreRepartition parts={repartition} total={coutsTotaux} format={(v) => m(v)} />
+        <BarreRepartition parts={repartition} total={coutsTotaux} devise={devise} />
       </Carte>
 
       {/* Courbes */}
@@ -166,16 +163,14 @@ export default async function Dashboard({
           <h2 className="mb-4 text-sm font-medium text-texte">Chiffre d&apos;affaires par jour</h2>
           <Courbe
             points={jours.map((j) => ({ x: j.bucket, y: Number(j.gross_sales) }))}
-            format={(v) => m(v)}
-            libelleX={jourCourt}
+            unite="monnaie" devise={devise}
           />
         </Carte>
         <Carte className="px-6 py-6">
           <h2 className="mb-4 text-sm font-medium text-texte">Commandes par jour</h2>
           <Colonnes
             points={jours.map((j) => ({ x: j.bucket, y: Number(j.orders_count) }))}
-            format={(v) => formaterNombre(Math.round(v))}
-            libelleX={jourCourt}
+            unite="nombre"
           />
         </Carte>
       </div>
