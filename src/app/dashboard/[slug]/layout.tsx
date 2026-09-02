@@ -40,6 +40,12 @@ export default async function DashboardLayout({
         <Nav slug={slug} />
         <div className="mt-auto space-y-0.5 pt-8">
           <Link
+            href="/overview"
+            className="block rounded-xl px-3 py-2 text-xs text-faible transition hover:text-doux"
+          >
+            Vue consolidée
+          </Link>
+          <Link
             href="/select"
             className="block rounded-xl px-3 py-2 text-xs text-faible transition hover:text-doux"
           >

@@ -43,6 +43,18 @@ export default async function SelectPage({
 
         <Message erreur={erreur} />
 
+        {boutiques && boutiques.length > 1 && (
+          <Link
+            href="/overview"
+            className="mb-3 flex items-center justify-between rounded-2xl border border-accent/30 bg-accent/5 px-5 py-4 transition hover:border-accent/50"
+          >
+            <span className="font-medium text-accent">Vue consolidée</span>
+            <span className="text-sm text-doux">
+              les {boutiques.length} boutiques ensemble
+            </span>
+          </Link>
+        )}
+
         {boutiques && boutiques.length > 0 ? (
           <ul className="space-y-2">
             {boutiques.map((b) => (
