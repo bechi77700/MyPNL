@@ -119,6 +119,24 @@ export function lireCsvDepenses(contenu: string): {
 
   const ordre = detecterOrdre(corps.map((l) => l[iDate] ?? ""));
 
+  // Un export "par campagne" a une date de debut ET une date de fin qui
+  // couvrent toute la periode : l'importer mettrait tout le budget sur un
+  // seul jour. On le refuse, avec la marche a suivre.
+  const iFin = entetes.findIndex((e, i) => i !== iDate && /reporting ends|date de fin|fin/i.test(e)
+    && corps.filter((l) => ressembleADate(l[i] ?? "")).length / Math.max(1, corps.length) > 0.7);
+  if (iFin >= 0) {
+    const etendues = corps.map((l) => {
+      const a = versDate(l[iDate] ?? "", ordre), b = versDate(l[iFin] ?? "", ordre);
+      return a && b ? (new Date(b).getTime() - new Date(a).getTime()) / 86400_000 : 0;
+    });
+    const plages = etendues.filter((e) => e >= 1).length;
+    if (plages / Math.max(1, etendues.length) > 0.5)
+      throw new Error(
+        "Ce fichier est ventilé par campagne (une ligne couvre toute la période), pas par jour. " +
+        "Dans Ads Manager, ajoute la ventilation « Par jour » avant d'exporter.",
+      );
+  }
+
   const parJour = new Map<string, number>();
   for (const l of corps) {
     const d = versDate(l[iDate] ?? "", ordre);

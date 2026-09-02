@@ -139,7 +139,16 @@ export async function importerCsvDepenses(slug: string, form: FormData): Promise
   }
   if (!parse.lignes.length) retour(slug, "erreur", "Aucune ligne exploitable dans ce fichier.");
 
-  const lignes = parse.lignes.map((l) => ({
+  // Un jour deja rempli par l'API (compte connecte) n'est jamais ecrase par un CSV :
+  // la donnee vivante prime sur l'import manuel.
+  const { data: apiRows } = await admin
+    .from("ad_spend").select("date")
+    .eq("shop_id", shopId).eq("platform", plateforme).eq("source", "api")
+    .gte("date", parse.lignes[0].date).lte("date", parse.lignes[parse.lignes.length - 1].date);
+  const protegees = new Set((apiRows ?? []).map((r) => r.date as string));
+  const retenues = parse.lignes.filter((l) => !protegees.has(l.date));
+
+  const lignes = retenues.map((l) => ({
     shop_id: shopId, date: l.date, platform: plateforme,
     amount: l.montant, source: "manual", updated_at: new Date().toISOString(),
   }));
@@ -150,7 +159,8 @@ export async function importerCsvDepenses(slug: string, form: FormData): Promise
     if (error) retour(slug, "erreur", error.message);
   }
 
-  const total = parse.lignes.reduce((a, l) => a + l.montant, 0);
+  const total = retenues.reduce((a, l) => a + l.montant, 0);
+  const ignorees = parse.lignes.length - retenues.length;
   await admin.rpc("refresh_daily_facts", {
     p_shop: shopId,
     p_from: parse.lignes[0].date,
@@ -159,7 +169,8 @@ export async function importerCsvDepenses(slug: string, form: FormData): Promise
   revalidatePath(`/dashboard/${slug}/integrations`);
   retour(
     slug, "ok",
-    `${parse.lignes.length} jours importés (${Math.round(total).toLocaleString("fr-FR")}) ` +
-    `depuis « ${parse.colonneDate} » et « ${parse.colonneMontant} », dates lues en ${parse.format}.`,
+    `${retenues.length} jours importés (${Math.round(total).toLocaleString("fr-FR")}) ` +
+    `depuis « ${parse.colonneDate} » et « ${parse.colonneMontant} », dates lues en ${parse.format}.` +
+    (ignorees ? ` ${ignorees} jour${ignorees > 1 ? "s" : ""} déjà couvert${ignorees > 1 ? "s" : ""} par l'API, conservé${ignorees > 1 ? "s" : ""}.` : ""),
   );
 }
