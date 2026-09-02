@@ -1,54 +1,56 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { chargerSkus } from "@/lib/skus";
+import { Carte, EnTetePage } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
 export default async function VueEnsemble({
   params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+}: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const supabase = await createClient();
   const { data: boutique } = await supabase
-    .from("shops")
-    .select("id, name, currency, timezone")
-    .eq("slug", slug)
-    .maybeSingle();
+    .from("shops").select("id, name, currency").eq("slug", slug).maybeSingle();
+  const shopId = boutique!.id as string;
 
-  const { data: couverture } = await supabase.rpc("cogs_coverage", {
-    p_shop: boutique!.id,
-  });
-  const c = couverture?.[0];
+  const [{ data: couv }, skus] = await Promise.all([
+    supabase.rpc("cogs_coverage", { p_shop: shopId }),
+    chargerSkus(shopId, false),
+  ]);
+  const c = couv?.[0] as
+    | { total: number; avec_cout_produit: number; avec_shipping: number; sans_sku: number }
+    | undefined;
+  const sansCout = skus.actifs.filter((s) => s.cost === 0).length;
 
   return (
-    <div className="px-8 py-10">
-      <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
-        {boutique!.name}
-      </h1>
-      <p className="mt-1 text-sm text-neutral-500">
-        {boutique!.currency} · {boutique!.timezone}
-      </p>
+    <div className="px-7 py-8">
+      <EnTetePage titre={boutique!.name} sous={`${c?.total ?? 0} commandes importées`} />
 
-      {c && c.avec_cout_produit === 0 && (
-        <div className="mt-8 rounded-xl border border-amber-300 bg-amber-50 px-5 py-4">
-          <p className="font-medium text-amber-900">
-            Ton COGS est encore à zéro.
+      {sansCout > 0 && (
+        <Carte className="border-alerte/30 bg-alerte/5 px-5 py-4">
+          <p className="font-medium text-alerte">
+            {sansCout} produit{sansCout > 1 ? "s" : ""} actif
+            {sansCout > 1 ? "s" : ""} sans coût
           </p>
-          <p className="mt-1 text-sm text-amber-800">
-            {c.total} commandes sont importées, mais aucune n&apos;a de coût
-            produit. Renseigne tes coûts dans l&apos;onglet <b>Coûts</b> pour que
-            les marges deviennent réelles.
+          <p className="mt-1 text-sm text-doux">
+            Tant que les coûts ne sont pas saisis, tes marges sont fausses.{" "}
+            <Link
+              href={`/dashboard/${slug}/produits`}
+              className="text-accent underline-offset-4 hover:underline"
+            >
+              Renseigner les prix produit
+            </Link>
           </p>
-        </div>
+        </Carte>
       )}
 
-      <div className="mt-8 rounded-xl border border-dashed border-neutral-300 bg-white px-6 py-12 text-center">
-        <p className="text-neutral-700">Le P&amp;L arrive.</p>
-        <p className="mt-2 text-sm text-neutral-500">
-          Prochaine étape après les coûts : les cartes, la cascade CA → EBITDA et
-          les courbes.
+      <Carte className="mt-4 border-dashed px-6 py-14 text-center">
+        <p className="text-doux">Le P&amp;L arrive.</p>
+        <p className="mt-1.5 text-sm text-faible">
+          Cartes, cascade CA → EBITDA, courbes et acquisition.
         </p>
-      </div>
+      </Carte>
     </div>
   );
 }

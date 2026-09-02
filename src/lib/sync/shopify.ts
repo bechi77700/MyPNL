@@ -7,6 +7,7 @@ type Creds = { token: string; domaine: string };
 
 export type ResultatSync = {
   commandes: number;
+  produits: number;
   jours_frais: number;
   payouts: number;
   litiges: number;
@@ -217,11 +218,82 @@ export async function syncCommandes(
 
   if (skus.size) {
     await admin.from("shop_skus").upsert(
+      // ignoreDuplicates : le catalogue (syncProduits) fait autorite sur les libelles.
       [...skus].map(([sku, v]) => ({ shop_id: shopId, sku, ...v, last_seen_at: new Date().toISOString() })),
       { onConflict: "shop_id,sku" },
     );
   }
   return total;
+}
+
+
+// ─────────────────────── Catalogue produits ───────────────────────
+
+type VarianteShopify = {
+  id: number; sku: string | null; title: string | null;
+  price: string | null; image_id: number | null;
+};
+type ProduitShopify = {
+  id: number; title: string; status: string;
+  image?: { src?: string } | null;
+  images?: { id: number; src: string }[];
+  variants?: VarianteShopify[];
+};
+
+/**
+ * Recupere le catalogue pour connaitre le STATUT de chaque SKU
+ * (active / draft / archived) ainsi que son prix et son visuel.
+ * Sans ca, impossible de masquer les brouillons dans l'interface.
+ */
+export async function syncProduits(admin: Admin, creds: Creds, shopId: string) {
+  const lignes: Record<string, unknown>[] = [];
+
+  for (const statut of ["active", "draft", "archived"]) {
+    const f = new URLSearchParams({
+      limit: "250", status: statut,
+      fields: "id,title,status,image,images,variants",
+    });
+    for await (const lot of pages<ProduitShopify>(creds, `products.json?${f}`, "products")) {
+      for (const p of lot) {
+        const parId = new Map((p.images ?? []).map((i) => [i.id, i.src]));
+        for (const v of p.variants ?? []) {
+          const sku = (v.sku || "").trim();
+          if (!sku) continue;
+          lignes.push({
+            shop_id: shopId,
+            sku,
+            title: p.title,
+            product_title: p.title,
+            variant_title: v.title && v.title !== "Default Title" ? v.title : null,
+            product_id: String(p.id),
+            status: p.status,
+            price: v.price ? Number(v.price) : null,
+            image_url: (v.image_id && parId.get(v.image_id)) || p.image?.src || null,
+            last_seen_at: new Date().toISOString(),
+          });
+        }
+      }
+    }
+  }
+
+  // Un meme SKU peut etre porte par plusieurs variantes (doublons dans le
+  // catalogue). Postgres refuse deux upserts sur la meme cle dans un seul lot :
+  // on garde la derniere occurrence, en privilegiant les produits actifs.
+  const uniques = new Map<string, Record<string, unknown>>();
+  for (const l of lignes) {
+    const cle = String(l.sku);
+    const existant = uniques.get(cle);
+    if (!existant || existant.status !== "active") uniques.set(cle, l);
+  }
+  const finales = [...uniques.values()];
+
+  for (let i = 0; i < finales.length; i += 500) {
+    const { error } = await admin
+      .from("shop_skus")
+      .upsert(finales.slice(i, i + 500), { onConflict: "shop_id,sku" });
+    if (error) throw new Error(`upsert produits : ${error.message}`);
+  }
+  return finales.length;
 }
 
 // ───────────────── Frais de transaction REELS ─────────────────
@@ -388,7 +460,7 @@ export async function syncBoutique(
   const creds = await chargerCreds(admin, shopId);
   const tz = shop.timezone || "UTC";
   const res: ResultatSync = {
-    commandes: 0, jours_frais: 0, payouts: 0, litiges: 0,
+    commandes: 0, produits: 0, jours_frais: 0, payouts: 0, litiges: 0,
     jours_sessions: 0, jours_recalcules: 0, erreurs: [],
   };
 
@@ -399,6 +471,7 @@ export async function syncBoutique(
 
   const etapes: [keyof ResultatSync, () => Promise<number>][] = [
     ["commandes", () => syncCommandes(admin, creds, shopId, depuis)],
+    ["produits", () => syncProduits(admin, creds, shopId)],
     ["jours_frais", () => syncFrais(admin, creds, shopId, tz, depuis)],
     ["payouts", () => syncPayouts(admin, creds, shopId)],
     ["litiges", () => syncLitiges(admin, creds, shopId, tz)],

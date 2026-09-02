@@ -34,6 +34,7 @@ const res = await syncBoutique(shop.id, { complet: true });
 console.log(`\nTermine en ${Math.round((Date.now() - t0) / 1000)} s`);
 console.table({
   commandes: res.commandes,
+  produits: res.produits,
   "jours de frais": res.jours_frais,
   versements: res.payouts,
   litiges: res.litiges,

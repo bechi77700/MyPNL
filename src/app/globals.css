@@ -1,26 +1,57 @@
 @import "tailwindcss";
 
+/* ── Palette : sombre, inspiree de TrendTrack, accent vert ────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --fond:       #08080a;  /* cadre exterieur, quasi noir */
+  --panneau:    #121214;  /* panneau de contenu arrondi */
+  --carte:      #17171b;  /* cartes et tableaux */
+  --carte-haut: #1d1d22;  /* en-tetes, lignes survolees */
+  --bord:       #26262c;
+  --bord-fort:  #34343c;
+  --texte:      #f4f4f5;
+  --doux:       #a1a1ab;
+  --faible:     #6b6b76;
+  --accent:     #34d399;
+  --accent-sombre: #10b981;
+  --positif:    #34d399;
+  --negatif:    #f87171;
+  --alerte:     #fbbf24;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-fond: var(--fond);
+  --color-panneau: var(--panneau);
+  --color-carte: var(--carte);
+  --color-carte-haut: var(--carte-haut);
+  --color-bord: var(--bord);
+  --color-bord-fort: var(--bord-fort);
+  --color-texte: var(--texte);
+  --color-doux: var(--doux);
+  --color-faible: var(--faible);
+  --color-accent: var(--accent);
+  --color-positif: var(--positif);
+  --color-negatif: var(--negatif);
+  --color-alerte: var(--alerte);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+html { color-scheme: dark; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--fond);
+  color: var(--texte);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
+
+/* Les chiffres s'alignent en colonne dans les tableaux financiers. */
+.chiffres { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bord); border-radius: 9999px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--bord-fort); background-clip: content-box; }
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
