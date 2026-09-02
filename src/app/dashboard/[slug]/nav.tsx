@@ -11,7 +11,7 @@ const SECTIONS: {
     titre: "Reports",
     liens: [
       { href: "", label: "Dashboard" },
-      { href: "/pnl", label: "P&L Report", bientot: true },
+      { href: "/pnl", label: "P&L Report" },
       { href: "/orders", label: "Orders Report", bientot: true },
     ],
   },
