@@ -112,14 +112,16 @@ export default function BarreRapport({
 
       {!sansActualisation && (
         <div className="ml-auto flex items-center gap-2.5 pl-2">
-          <span className="hidden text-right text-[11px] leading-tight text-faible sm:block">
+          <span className="max-w-[140px] text-right text-[11px] leading-tight text-faible sm:max-w-none">
             {retour ? (
               <span className={retour.ok ? "text-positif" : "text-negatif"}>{retour.message}</span>
             ) : enCours ? (
               "Shopify + pub, puis recalcul"
             ) : derniereSynchro ? (
-              <>synchro {formaterDelai(derniereSynchro)}</>
-            ) : null}
+              <>Dernière synchro<br className="sm:hidden" /> {formaterDelai(derniereSynchro)}</>
+            ) : (
+              "Jamais synchronisé"
+            )}
           </span>
           <button
             type="button"
