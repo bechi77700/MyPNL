@@ -26,7 +26,7 @@ export default async function ProduitsPage({
   return (
     <div className="px-7 py-8">
       <EnTetePage
-        titre="Prix produit"
+        titre="Cost of Goods"
         sous={
           <>
             Ce que te coûte chaque article, hors livraison. Identique dans tous les pays.

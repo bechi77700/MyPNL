@@ -8,20 +8,20 @@ const SECTIONS: {
   liens: { href: string; label: string; bientot?: boolean }[];
 }[] = [
   {
-    titre: "Rapports",
+    titre: "Reports",
     liens: [
-      { href: "", label: "Vue d'ensemble" },
-      { href: "/pnl", label: "P&L", bientot: true },
-      { href: "/calendrier", label: "Calendrier", bientot: true },
+      { href: "", label: "Dashboard" },
+      { href: "/pnl", label: "P&L Report", bientot: true },
+      { href: "/orders", label: "Orders Report", bientot: true },
     ],
   },
   {
     titre: "Configuration",
     liens: [
-      { href: "/produits", label: "Prix produit" },
-      { href: "/shipping", label: "Prix shipping" },
-      { href: "/charges", label: "Charges" },
-      { href: "/sources", label: "Sources", bientot: true },
+      { href: "/cost-of-goods", label: "Cost of Goods" },
+      { href: "/shipping-costs", label: "Shipping Costs" },
+      { href: "/custom-costs", label: "Custom Costs" },
+      { href: "/integrations", label: "Integrations", bientot: true },
     ],
   },
 ];
@@ -49,7 +49,7 @@ export default function Nav({ slug }: { slug: string }) {
                     className="flex cursor-not-allowed items-center justify-between rounded-xl px-3 py-2 text-sm text-faible/60"
                   >
                     {l.label}
-                    <span className="text-[10px] uppercase tracking-wide">bientôt</span>
+                    <span className="text-[10px] uppercase tracking-wide">soon</span>
                   </span>
                 );
               return (

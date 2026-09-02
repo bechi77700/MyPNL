@@ -50,7 +50,7 @@ export async function enregistrerProduits(slug: string, form: FormData): Promise
   if (couts.length) {
     const { error } = await supabase
       .from("product_costs").upsert(couts, { onConflict: "shop_id,sku" });
-    if (error) retour("produits", slug, "erreur", error.message);
+    if (error) retour("cost-of-goods", slug, "erreur", error.message);
   }
   for (const d of drapeaux) {
     await supabase.from("shop_skus")
@@ -59,14 +59,14 @@ export async function enregistrerProduits(slug: string, form: FormData): Promise
   }
 
   await recalculer(supabase, shopId);
-  revalidatePath(`/dashboard/${slug}/produits`);
-  retour("produits", slug, "ok", `${couts.length} coûts enregistrés.`, voir ? { voir } : undefined);
+  revalidatePath(`/dashboard/${slug}/cost-of-goods`);
+  retour("cost-of-goods", slug, "ok", `${couts.length} coûts enregistrés.`, voir ? { voir } : undefined);
 }
 
 export async function enregistrerShipping(slug: string, form: FormData): Promise<void> {
   const { supabase, shopId } = await boutique(slug);
   const pays = String(form.get("pays") ?? "");
-  if (!pays) retour("shipping", slug, "erreur", "Pays manquant.");
+  if (!pays) retour("shipping-costs", slug, "erreur", "Pays manquant.");
 
   const lignes = [];
   for (const [cle] of form.entries()) {
@@ -81,12 +81,12 @@ export async function enregistrerShipping(slug: string, form: FormData): Promise
   if (lignes.length) {
     const { error } = await supabase
       .from("shipping_costs").upsert(lignes, { onConflict: "shop_id,sku,country" });
-    if (error) retour("shipping", slug, "erreur", error.message, { pays });
+    if (error) retour("shipping-costs", slug, "erreur", error.message, { pays });
   }
 
   await recalculer(supabase, shopId);
-  revalidatePath(`/dashboard/${slug}/shipping`);
-  retour("shipping", slug, "ok", `Grille ${pays} enregistrée (${lignes.length} lignes).`, { pays });
+  revalidatePath(`/dashboard/${slug}/shipping-costs`);
+  retour("shipping-costs", slug, "ok", `Grille ${pays} enregistrée (${lignes.length} lignes).`, { pays });
 }
 
 export async function ajouterCharge(slug: string, form: FormData): Promise<void> {
@@ -99,15 +99,15 @@ export async function ajouterCharge(slug: string, form: FormData): Promise<void>
     amount: Number(form.get("amount")) || 0,
     effective_from: String(form.get("effective_from") || new Date().toISOString().slice(0, 10)),
   });
-  if (error) retour("charges", slug, "erreur", error.message);
-  revalidatePath(`/dashboard/${slug}/charges`);
-  retour("charges", slug, "ok", "Charge ajoutée.");
+  if (error) retour("custom-costs", slug, "erreur", error.message);
+  revalidatePath(`/dashboard/${slug}/custom-costs`);
+  retour("custom-costs", slug, "ok", "Charge ajoutée.");
 }
 
 export async function supprimerCharge(slug: string, id: string): Promise<void> {
   const { supabase } = await boutique(slug);
   const { error } = await supabase.from("costs").delete().eq("id", id);
-  if (error) retour("charges", slug, "erreur", error.message);
-  revalidatePath(`/dashboard/${slug}/charges`);
-  retour("charges", slug, "ok", "Charge supprimée.");
+  if (error) retour("custom-costs", slug, "erreur", error.message);
+  revalidatePath(`/dashboard/${slug}/custom-costs`);
+  retour("custom-costs", slug, "ok", "Charge supprimée.");
 }

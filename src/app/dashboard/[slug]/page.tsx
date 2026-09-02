@@ -25,7 +25,7 @@ export default async function VueEnsemble({
 
   return (
     <div className="px-7 py-8">
-      <EnTetePage titre={boutique!.name} sous={`${c?.total ?? 0} commandes importées`} />
+      <EnTetePage titre="Dashboard" sous={`${boutique!.name} · ${(c?.total ?? 0).toLocaleString("fr-FR")} commandes importées`} />
 
       {sansCout > 0 && (
         <Carte className="border-alerte/30 bg-alerte/5 px-5 py-4">
@@ -36,7 +36,7 @@ export default async function VueEnsemble({
           <p className="mt-1 text-sm text-doux">
             Tant que les coûts ne sont pas saisis, tes marges sont fausses.{" "}
             <Link
-              href={`/dashboard/${slug}/produits`}
+              href={`/dashboard/${slug}/cost-of-goods`}
               className="text-accent underline-offset-4 hover:underline"
             >
               Renseigner les prix produit

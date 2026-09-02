@@ -23,16 +23,14 @@ export default async function ShippingPage({
 
   const [{ data: pays }, skus] = await Promise.all([
     supabase.rpc("shop_countries", { p_shop: shopId }),
-    chargerSkus(shopId, true),
+    chargerSkus(shopId, false),
   ]);
 
   const listePays = (pays ?? []) as { country: string; orders_count: number }[];
   const paysActif = choisi ?? listePays[0]?.country ?? "US";
 
-  // On ne propose que ce qui s'expedie vraiment et qui a deja vendu.
-  const expediables = skus.visibles.filter(
-    (s) => !s.exclude_from_shipping && s.orders_count > 0,
-  );
+  // Uniquement les produits actifs qui s'expedient : le reste ne sert a rien ici.
+  const expediables = skus.actifs.filter((s) => !s.exclude_from_shipping);
 
   const { data: grille } = await supabase
     .from("shipping_costs")
@@ -47,7 +45,7 @@ export default async function ShippingPage({
   return (
     <div className="px-7 py-8">
       <EnTetePage
-        titre="Prix shipping"
+        titre="Shipping Costs"
         sous={
           <>
             <b className="text-doux">Standard</b> = le premier article du colis.{" "}
@@ -60,11 +58,14 @@ export default async function ShippingPage({
       />
       <Message ok={ok} erreur={erreur} />
 
+      <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-faible">
+        Marchés livrés — le chiffre est le nombre de commandes reçues
+      </p>
       <div className="mb-4 flex flex-wrap gap-1.5">
         {listePays.map((p) => (
           <Link
             key={p.country}
-            href={`/dashboard/${slug}/shipping?pays=${p.country}`}
+            href={`/dashboard/${slug}/shipping-costs?pays=${p.country}`}
             className={`rounded-full px-3.5 py-1.5 text-sm transition ${
               p.country === paysActif
                 ? "bg-accent font-medium text-[#04120c]"
@@ -72,7 +73,9 @@ export default async function ShippingPage({
             }`}
           >
             {p.country}
-            <span className="chiffres ml-1.5 opacity-60">{p.orders_count}</span>
+            <span className="chiffres ml-1.5 opacity-60">
+              {p.orders_count.toLocaleString("fr-FR")} cmd
+            </span>
           </Link>
         ))}
       </div>

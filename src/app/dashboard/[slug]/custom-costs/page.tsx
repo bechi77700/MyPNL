@@ -42,7 +42,7 @@ export default async function ChargesPage({
   return (
     <div className="px-7 py-8">
       <EnTetePage
-        titre="Charges"
+        titre="Custom Costs"
         sous={
           <>
             Salaires, outils, rémunération. Réparties au prorata de la période affichée.
