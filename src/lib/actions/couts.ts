@@ -152,3 +152,30 @@ export async function enregistrerTaxes(slug: string, form: FormData): Promise<vo
       ? "Aucune taxe déduite du chiffre d'affaires."
       : `Taxes enregistrées (${aEcrire.length} pays).`);
 }
+
+
+/** Taux + fixe par passerelle de paiement (frais estimes quand Shopify n'en fournit pas). */
+export async function enregistrerFraisPasserelles(slug: string, form: FormData): Promise<void> {
+  const { supabase, shopId } = await boutique(slug);
+  const lignes: { shop_id: string; gateway: string; rate: number; fixed: number }[] = [];
+  const vides: string[] = [];
+  for (const [cle, val] of form.entries()) {
+    if (!cle.startsWith("taux__")) continue;
+    const gateway = cle.slice(6);
+    const taux = String(val).replace(",", ".").trim();
+    const fixe = String(form.get(`fixe__${gateway}`) ?? "").replace(",", ".").trim();
+    if (taux === "" && fixe === "") { vides.push(gateway); continue; }
+    const rate = Number(taux) || 0, fixed = Number(fixe) || 0;
+    if (rate < 0 || rate > 20 || fixed < 0 || fixed > 10)
+      retour("custom-costs", slug, "erreur", `Taux invalide pour ${gateway} (0 à 20 %, fixe 0 à 10).`);
+    lignes.push({ shop_id: shopId, gateway, rate, fixed });
+  }
+  if (vides.length) await supabase.from("gateway_fees").delete().eq("shop_id", shopId).in("gateway", vides);
+  if (lignes.length) {
+    const { error } = await supabase.from("gateway_fees").upsert(lignes, { onConflict: "shop_id,gateway" });
+    if (error) retour("custom-costs", slug, "erreur", error.message);
+  }
+  await recalculer(supabase, shopId);
+  revalidatePath(`/dashboard/${slug}/custom-costs`);
+  retour("custom-costs", slug, "ok", `Frais de paiement enregistrés (${lignes.length} passerelles), commandes recalculées.`);
+}

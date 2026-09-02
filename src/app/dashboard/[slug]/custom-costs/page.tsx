@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { ajouterCharge, supprimerCharge } from "@/lib/actions/couts";
+import { ajouterCharge, enregistrerFraisPasserelles, supprimerCharge } from "@/lib/actions/couts";
 import { Bouton, Carte, Champ, EnTetePage, Message } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +43,14 @@ export default async function ChargesPage({
     .from("costs").select("*").eq("shop_id", boutique!.id)
     .order("created_at", { ascending: false });
 
+  const [{ data: passerelles }, { data: fraisPasserelles }] = await Promise.all([
+    supabase.from("shop_gateways").select("gateway, orders_count, last_order").eq("shop_id", boutique!.id).order("orders_count", { ascending: false }),
+    supabase.from("gateway_fees").select("gateway, rate, fixed").eq("shop_id", boutique!.id),
+  ]);
+  const tauxDe = (g: string) => (fraisPasserelles ?? []).find((f) => f.gateway === g);
+  const estShopifyPayments = (g: string) => /shopify_payments|shopify payments/i.test(g);
+  const joli = (g: string) => g === "paypal" ? "PayPal" : g === "manual" ? "Paiement manuel" : g === "inconnu" ? "Sans passerelle" : g;
+
   const mensuel = (charges ?? [])
     .filter((c) => c.kind === "monthly")
     .reduce((a, c) => a + Number(c.amount), 0);
@@ -69,6 +77,64 @@ export default async function ChargesPage({
         }
       />
       <Message ok={ok} erreur={erreur} />
+
+      {passerelles && passerelles.length > 0 && (
+        <Carte className="mb-6 overflow-hidden">
+          <div className="flex flex-wrap items-end justify-between gap-3 px-5 pt-5">
+            <div>
+              <h2 className="text-[14px] font-medium text-texte">Payment Gateway Fees</h2>
+              <p className="mt-1 text-[12.5px] text-doux">
+                Passerelles lues dans tes commandes Shopify. Shopify Payments a ses frais réels ; pour les autres,
+                un taux + fixe par commande, marqué « estimé » dans le P&amp;L.
+              </p>
+            </div>
+          </div>
+          <form action={enregistrerFraisPasserelles.bind(null, slug)} className="mt-4">
+            <table className="w-full text-[13px]">
+              <thead className="bg-carte-haut text-left surtitre">
+                <tr>
+                  <th className="px-5 py-3 font-medium">Passerelle</th>
+                  <th className="px-3 py-3 text-right font-medium">Commandes</th>
+                  <th className="px-3 py-3 font-medium">Taux %</th>
+                  <th className="px-3 py-3 font-medium">Fixe ({devise})</th>
+                  <th className="px-5 py-3 font-medium">Exemple sur 60 {devise}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {passerelles.map((g) => {
+                  const t = tauxDe(g.gateway);
+                  const reel = estShopifyPayments(g.gateway);
+                  return (
+                    <tr key={g.gateway} className="border-t border-bord">
+                      <td className="px-5 py-[9px] text-texte">{joli(g.gateway)}</td>
+                      <td className="chiffres px-3 py-[9px] text-right text-doux">{Number(g.orders_count).toLocaleString("fr-FR")}</td>
+                      {reel ? (
+                        <td colSpan={3} className="px-3 py-[9px] text-[12px] text-positif">Frais réels, synchronisés depuis les versements Shopify</td>
+                      ) : (
+                        <>
+                          <td className="px-3 py-[7px]">
+                            <Champ name={`taux__${g.gateway}`} type="text" inputMode="decimal" placeholder="2,90" defaultValue={t ? String(t.rate) : ""} className="chiffres w-24" />
+                          </td>
+                          <td className="px-3 py-[7px]">
+                            <Champ name={`fixe__${g.gateway}`} type="text" inputMode="decimal" placeholder="0,30" defaultValue={t ? String(t.fixed) : ""} className="chiffres w-24" />
+                          </td>
+                          <td className="chiffres px-5 py-[9px] text-faible">
+                            {t ? `${(60 * Number(t.rate) / 100 + Number(t.fixed)).toFixed(2)} ${devise}` : "—"}
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <div className="flex items-center justify-between gap-3 px-5 py-4">
+              <p className="text-[11.5px] text-faible">Vide = aucun frais compté pour cette passerelle.</p>
+              <Bouton type="submit">Enregistrer les frais</Bouton>
+            </div>
+          </form>
+        </Carte>
+      )}
 
       {charges && charges.length > 0 ? (
         <Carte className="overflow-hidden">

@@ -72,7 +72,7 @@ const CHAMPS_COMMANDE = [
   "id", "name", "created_at", "updated_at", "cancelled_at", "currency",
   "financial_status", "total_price_set", "current_total_price_set",
   "current_total_tax_set", "total_tax_set", "total_shipping_price_set",
-  "line_items", "shipping_address", "billing_address", "customer",
+  "line_items", "shipping_address", "billing_address", "customer", "payment_gateway_names",
 ].join(",");
 
 type LigneCommande = {
@@ -85,6 +85,7 @@ type LigneCommande = {
 };
 
 type CommandeShopify = {
+  payment_gateway_names?: string[];
   id: number;
   name: string;
   created_at: string;
@@ -187,6 +188,7 @@ export async function syncCommandes(
         order_date: o.created_at,
         country: o.shipping_address?.country_code ?? o.billing_address?.country_code ?? null,
         postal_code: o.shipping_address?.zip ?? o.billing_address?.zip ?? null,
+        gateway: o.payment_gateway_names?.[0] ?? null,
         items,
         revenue: brut,
         refunded: 0,
