@@ -47,7 +47,7 @@ export default async function ChargesPage({
     .filter((c) => c.kind === "monthly")
     .reduce((a, c) => a + Number(c.amount), 0);
 
-  const cls = "rounded-[7px] border border-bord bg-fond px-3 py-2 text-texte outline-none transition focus:border-accent/60";
+  const cls = "rounded-[10px] bg-carte-haut px-3 py-2 text-texte outline-none transition focus:border-accent/60";
 
   return (
     <div className="px-7 py-8">

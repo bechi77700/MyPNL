@@ -129,7 +129,7 @@ export default async function ShippingPage({
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={s.image_url} alt="" className="size-9 shrink-0 rounded-[7px] border border-bord object-cover" />
                           ) : (
-                            <div className="size-9 shrink-0 rounded-[7px] border border-bord bg-carte-haut" />
+                            <div className="size-9 shrink-0 rounded-full bg-carte-haut-haut" />
                           )}
                           <div className="min-w-0">
                             <p className="truncate text-texte">{nomSku(s)}</p>
@@ -145,7 +145,7 @@ export default async function ShippingPage({
                           type="number" step="0.01" min="0"
                           name={`std__${s.sku}`} defaultValue={g?.standard ? Number(g.standard).toFixed(2) : ""}
                           placeholder="0,00" lang="fr"
-                          className="chiffres w-24 rounded-[7px] border border-bord bg-fond px-2.5 py-1.5 text-right text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
+                          className="chiffres w-24 rounded-[10px] bg-carte-haut px-2.5 py-1.5 text-right text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
                         />
                       </td>
                       <td className="px-4 py-[9px] text-right">
@@ -153,7 +153,7 @@ export default async function ShippingPage({
                           type="number" step="0.01" min="0"
                           name={`ups__${s.sku}`} defaultValue={g?.upsell ? Number(g.upsell).toFixed(2) : ""}
                           placeholder="0,00" lang="fr"
-                          className="chiffres w-24 rounded-[7px] border border-bord bg-fond px-2.5 py-1.5 text-right text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
+                          className="chiffres w-24 rounded-[10px] bg-carte-haut px-2.5 py-1.5 text-right text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
                         />
                       </td>
                     </tr>

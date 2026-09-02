@@ -61,7 +61,7 @@ export default async function SelectPage({
               <li key={b.id}>
                 <Link
                   href={`/dashboard/${b.slug}`}
-                  className="flex items-center justify-between rounded-[9px] border border-bord bg-carte px-5 py-4 transition-colors hover:border-bord-fort hover:bg-carte-haut"
+                  className="flex items-center justify-between carte rounded-[14px] bg-carte px-5 py-4 transition-colors hover:border-bord-fort hover:bg-carte-haut"
                 >
                   <span className="font-medium text-texte">{b.name}</span>
                   <span className="text-[13px] text-faible">

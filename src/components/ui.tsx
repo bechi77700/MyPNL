@@ -15,7 +15,7 @@ export function Carte({
   };
   return (
     <div
-      className={`carte rounded-[10px] border border-bord bg-carte ${ton ? tons[ton] : ""} ${className}`}
+      className={`carte rounded-[14px] border border-transparent bg-carte ${ton ? tons[ton] : ""} ${className}`}
     >
       {children}
     </div>
@@ -31,7 +31,7 @@ export function Section({
   return (
     <Carte className={className}>
       {(titre || action) && (
-        <div className="flex items-center justify-between gap-4 border-b border-bord px-5 py-3">
+        <div className="flex items-center justify-between gap-4 px-6 pb-1 pt-5">
           {titre && <h2 className="text-[13px] font-medium text-texte">{titre}</h2>}
           {action}
         </div>
@@ -73,7 +73,7 @@ export function Bouton({
   return (
     <button
       {...props}
-      className={`inline-flex items-center gap-1.5 rounded-[8px] px-3.5 py-[7px] text-[13px] ${styles} ${props.className ?? ""}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-4 py-[8px] text-[13px] ${styles} ${props.className ?? ""}`}
     >
       {children}
     </button>
@@ -84,7 +84,7 @@ export function Champ(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className={`rounded-[7px] border border-bord bg-fond px-2.5 py-[7px] text-[13px] text-texte outline-none transition-colors placeholder:text-faible focus:border-accent/50 ${props.className ?? ""}`}
+      className={`rounded-[10px] border border-transparent bg-carte-haut px-3 py-[8px] text-[13px] text-texte outline-none transition-colors placeholder:text-faible focus:border-accent/50 ${props.className ?? ""}`}
     />
   );
 }
@@ -93,7 +93,7 @@ export function Selecteur(props: React.SelectHTMLAttributes<HTMLSelectElement>) 
   return (
     <select
       {...props}
-      className={`rounded-[7px] border border-bord bg-fond px-2.5 py-[7px] text-[13px] text-texte outline-none transition-colors focus:border-accent/50 ${props.className ?? ""}`}
+      className={`rounded-[10px] border border-transparent bg-carte-haut px-3 py-[8px] text-[13px] text-texte outline-none transition-colors focus:border-accent/50 ${props.className ?? ""}`}
     />
   );
 }
@@ -186,7 +186,7 @@ export function Th({
 }: { children?: React.ReactNode; align?: "left" | "right" | "center"; className?: string }) {
   return (
     <th
-      className={`surtitre whitespace-nowrap border-b border-bord bg-carte-haut px-4 py-2.5 text-${align} ${className}`}
+      className={`surtitre whitespace-nowrap px-4 py-2.5 text-${align} ${className}`}
     >
       {children}
     </th>
@@ -212,7 +212,7 @@ export function Tr({
   children, className = "",
 }: { children: React.ReactNode; className?: string }) {
   return (
-    <tr className={`border-b border-bord/60 transition-colors last:border-0 hover:bg-carte-haut/60 ${className}`}>
+    <tr className={`border-b border-bord transition-colors last:border-0 hover:bg-carte-haut/70 ${className}`}>
       {children}
     </tr>
   );

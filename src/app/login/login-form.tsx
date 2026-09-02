@@ -60,7 +60,7 @@ export default function LoginForm({
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-[7px] border border-bord bg-carte px-3.5 py-2.5 text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
+          className="w-full rounded-full bg-carte-haut px-3.5 py-2.5 text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
           placeholder="toi@exemple.com"
         />
       </div>
@@ -77,7 +77,7 @@ export default function LoginForm({
           autoComplete={premierCompte ? "new-password" : "current-password"}
           value={motDePasse}
           onChange={(e) => setMotDePasse(e.target.value)}
-          className="w-full rounded-[7px] border border-bord bg-carte px-3.5 py-2.5 text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
+          className="w-full rounded-full bg-carte-haut px-3.5 py-2.5 text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
           placeholder={premierCompte ? "8 caractères minimum" : "••••••••"}
         />
       </div>

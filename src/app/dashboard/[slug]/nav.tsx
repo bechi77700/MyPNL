@@ -86,15 +86,12 @@ function Liens({ slug, estAdmin, onClic }: { slug: string; estAdmin: boolean; on
                 return (
                   <Link
                     key={l.label} href={href} onClick={onClic}
-                    className={`group relative flex items-center gap-2.5 rounded-[8px] px-2.5 py-[7px] text-[12.5px] transition-all duration-150 ${
+                    className={`group relative flex items-center gap-2.5 rounded-full px-3 py-[8px] text-[12.5px] transition-all duration-150 ${
                       actif
-                        ? "bg-carte-haut font-medium text-texte shadow-[inset_0_1px_0_rgb(255_255_255/0.05)]"
+                        ? "bg-carte-haut font-medium text-texte"
                         : "text-doux hover:bg-carte hover:text-texte"
                     }`}
                   >
-                    {actif && (
-                      <span className="absolute -left-2.5 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-accent shadow-[0_0_10px_rgb(45_202_2/0.7)]" />
-                    )}
                     <span className={`transition-colors ${actif ? "text-accent" : "text-faible group-hover:text-doux"}`}>
                       <Icone nom={l.icone} />
                     </span>
@@ -111,7 +108,7 @@ function Liens({ slug, estAdmin, onClic }: { slug: string; estAdmin: boolean; on
 }
 
 function LiensBas({ compact }: { compact?: boolean }) {
-  const cls = "flex items-center gap-2.5 rounded-[8px] px-2.5 py-[7px] text-[12.5px] text-doux transition-colors hover:bg-carte hover:text-texte";
+  const cls = "flex items-center gap-2.5 rounded-full px-3 py-[8px] text-[12.5px] text-doux transition-colors hover:bg-carte hover:text-texte";
   return (
     <div className={`space-y-px ${compact ? "" : "mt-auto pt-6"}`}>
       <Link href="/overview" className={cls}><Icone nom="overview" /> Vue consolidée</Link>
@@ -152,7 +149,7 @@ export function NavMobile({
         <button
           onClick={() => setOuvert(true)}
           aria-label="Ouvrir le menu"
-          className="btn-discret inline-flex items-center gap-1.5 rounded-[8px] border border-bord px-3 py-[7px] text-[12.5px] text-doux"
+          className="btn-discret inline-flex items-center gap-1.5 rounded-full px-3.5 py-[7px] text-[12.5px] text-doux"
         >
           <svg width="15" height="15" viewBox="0 0 18 18" aria-hidden><path d="M3 5h12M3 9h12M3 13h12" {...T} /></svg>
           Menu
@@ -163,13 +160,13 @@ export function NavMobile({
         <div className="fixed inset-0 z-40 lg:hidden">
           <button aria-label="Fermer le menu" onClick={() => setOuvert(false)}
             className="absolute inset-0 bg-black/70 backdrop-blur-[2px]" />
-          <div className="apparait absolute inset-y-0 left-0 flex w-[280px] max-w-[85vw] flex-col overflow-y-auto border-r border-bord bg-fond px-4 py-4">
+          <div className="apparait verre absolute inset-y-0 left-0 flex w-[280px] max-w-[85vw] flex-col overflow-y-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <Logo />
               <button onClick={() => setOuvert(false)} aria-label="Fermer"
                 className="rounded-[7px] px-2 py-1 text-xl leading-none text-faible hover:text-texte">×</button>
             </div>
-            <div className="carte mt-4 rounded-[9px] border border-bord bg-carte px-3 py-2.5">
+            <div className="carte mt-4 rounded-[12px] bg-carte px-3.5 py-3">
               <p className="truncate text-[13px] font-medium text-texte">{boutique}</p>
             </div>
             <Liens slug={slug} estAdmin={estAdmin} onClic={() => setOuvert(false)} />

@@ -47,7 +47,7 @@ export default async function IntegrationsPage({
   const meta = listeEtats.find((e) => e.platform === "meta");
   const comptesMeta = (comptes ?? []).filter((c) => c.platform === "meta");
 
-  const cls = "rounded-[7px] border border-bord bg-fond px-3 py-2 text-texte outline-none transition focus:border-accent/60";
+  const cls = "rounded-[10px] bg-carte-haut px-3 py-2 text-texte outline-none transition focus:border-accent/60";
 
   return (
     <div className="px-7 py-8">
@@ -240,7 +240,7 @@ export default async function IntegrationsPage({
             <span className="text-[11.5px] text-faible">Fichier CSV</span>
             <input
               type="file" name="fichier" accept=".csv,text/csv" required
-              className="rounded-[7px] border border-bord bg-fond px-3 py-1.5 text-[13px] text-doux file:mr-3 file:rounded-[7px] file:border-0 file:bg-carte-haut file:px-3 file:py-1.5 file:text-texte"
+              className="rounded-[10px] bg-carte-haut px-3 py-1.5 text-[13px] text-doux file:mr-3 file:rounded-[7px] file:border-0 file:bg-carte-haut file:px-3 file:py-1.5 file:text-texte"
             />
           </label>
           <Bouton type="submit" variante="discret">Importer</Bouton>

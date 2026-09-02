@@ -42,7 +42,7 @@ export function Metrique({
   label: string; valeur: string; delta?: number | null; note?: string;
 }) {
   return (
-    <div className="carte carte-survol rounded-[10px] border border-bord bg-carte px-4 py-3.5">
+    <div className="carte carte-survol rounded-[14px] bg-carte px-5 py-4">
       <div className="flex items-center gap-2.5">
         {icone && (
           <span className={`puce flex size-[30px] shrink-0 items-center justify-center rounded-[9px] ${TEINTES[teinte]}`}>

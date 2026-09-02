@@ -69,12 +69,12 @@ export default function BarreRapport({
     });
   };
 
-  const bouton = "inline-flex items-center gap-1.5 rounded-[8px] px-2.5 py-[6px] text-[12.5px]";
-  const inactif = `${bouton} btn-discret border border-bord text-doux hover:text-texte`;
+  const bouton = "inline-flex items-center gap-1.5 rounded-full px-3 py-[6px] text-[12.5px]";
+  const inactif = `${bouton} btn-discret text-doux hover:text-texte`;
   const selection = `${bouton} btn-principal font-semibold`;
 
   return (
-    <div className="verre sticky top-0 z-20 -mx-6 mb-5 flex flex-col gap-2 px-6 py-2.5 lg:top-0">
+    <div className="verre sticky top-0 z-20 -mx-6 mb-6 flex flex-col gap-2 px-6 py-3 lg:top-0">
       {navigue && <div className="progression" aria-hidden />}
       <div className="flex flex-wrap items-center gap-1.5">
         {PRESETS.map(([p, label]) => {
@@ -108,7 +108,7 @@ export default function BarreRapport({
         </button>
 
         {!sansActualisation && <>
-        <span className="mx-1 hidden h-4 w-px bg-bord sm:block" />
+        <span className="mx-1 hidden h-4 w-px bg-bord-fort sm:block" />
 
         <button
           type="button"
@@ -137,18 +137,18 @@ export default function BarreRapport({
       </div>
 
       {ouvert && (
-        <div className="carte apparait flex flex-wrap items-end gap-2 rounded-[9px] border border-bord bg-carte px-3 py-2.5">
+        <div className="carte apparait flex flex-wrap items-end gap-2 rounded-[12px] bg-carte px-4 py-3">
           <label className="flex flex-col gap-1">
             <span className="text-[10.5px] text-faible">Du</span>
             <input type="date" value={debut} max={fin || undefined}
               onChange={(e) => setDebut(e.target.value)}
-              className="chiffres rounded-[7px] border border-bord bg-fond px-2.5 py-[6px] text-[12.5px] text-texte outline-none focus:border-accent/50" />
+              className="chiffres rounded-[10px] border border-transparent bg-carte-haut px-3 py-[6px] text-[12.5px] text-texte outline-none focus:border-accent/50" />
           </label>
           <label className="flex flex-col gap-1">
             <span className="text-[10.5px] text-faible">Au</span>
             <input type="date" value={fin} min={debut || undefined}
               onChange={(e) => setFin(e.target.value)}
-              className="chiffres rounded-[7px] border border-bord bg-fond px-2.5 py-[6px] text-[12.5px] text-texte outline-none focus:border-accent/50" />
+              className="chiffres rounded-[10px] border border-transparent bg-carte-haut px-3 py-[6px] text-[12.5px] text-texte outline-none focus:border-accent/50" />
           </label>
           <button type="button" onClick={appliquer} className={selection}>Appliquer</button>
           <button type="button" onClick={() => setOuvert(false)} className={`${bouton} text-faible hover:text-doux`}>

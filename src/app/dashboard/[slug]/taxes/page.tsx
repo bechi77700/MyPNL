@@ -60,7 +60,7 @@ export default async function TaxesPage({
             {MODES.map(([v, titre, desc]) => (
               <label
                 key={v}
-                className="flex cursor-pointer gap-3 rounded-[7px] border border-bord bg-fond px-4 py-3 transition-colors hover:border-bord-fort"
+                className="flex cursor-pointer gap-3 rounded-[10px] bg-carte-haut px-4 py-3 transition-colors hover:border-bord-fort"
               >
                 <input
                   type="radio" name="mode" value={v} defaultChecked={mode === v}
@@ -84,14 +84,14 @@ export default async function TaxesPage({
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {listePays.map((p) => (
-              <label key={p} className="flex items-center gap-3 rounded-[7px] border border-bord bg-fond px-3.5 py-2.5">
+              <label key={p} className="flex items-center gap-3 rounded-[10px] bg-carte-haut px-3.5 py-2.5">
                 <span className="w-8 shrink-0 text-[13px] text-texte">{p}</span>
                 <input
                   type="number" step="0.1" min="0" max="100"
                   name={`taux__${p}`}
                   defaultValue={actuels.get(p) ?? ""}
                   placeholder="0"
-                  className="chiffres w-20 rounded-[7px] border border-bord bg-carte px-2.5 py-1.5 text-right text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
+                  className="chiffres w-20 rounded-full bg-carte-haut px-2.5 py-1.5 text-right text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
                 />
                 <span className="text-[13px] text-faible">%</span>
                 {suggeres.has(p) && (

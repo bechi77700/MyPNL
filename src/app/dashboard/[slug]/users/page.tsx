@@ -64,7 +64,7 @@ export default async function UsersPage({
                 </Selecteur>
                 <div className="flex flex-wrap gap-1.5">
                   {shops.map((b) => (
-                    <label key={b.id} className="inline-flex cursor-pointer items-center gap-1.5 rounded-[7px] border border-bord bg-fond px-2.5 py-1 text-[12px] text-doux has-[:checked]:border-accent/40 has-[:checked]:bg-accent/10 has-[:checked]:text-accent">
+                    <label key={b.id} className="inline-flex cursor-pointer items-center gap-1.5 rounded-[10px] bg-carte-haut px-2.5 py-1 text-[12px] text-doux has-[:checked]:border-accent/40 has-[:checked]:bg-accent/10 has-[:checked]:text-accent">
                       <input type="checkbox" name="boutiques" value={b.id}
                         defaultChecked={p.role === "admin" || p.allowed_shops?.includes(b.id)}
                         disabled={p.role === "admin"} className="sr-only" />
@@ -104,7 +104,7 @@ export default async function UsersPage({
             <span className="surtitre">Boutiques (membre)</span>
             <div className="flex flex-wrap gap-1.5">
               {shops.map((b) => (
-                <label key={b.id} className="inline-flex cursor-pointer items-center gap-1.5 rounded-[7px] border border-bord bg-fond px-2.5 py-[7px] text-[12px] text-doux has-[:checked]:border-accent/40 has-[:checked]:bg-accent/10 has-[:checked]:text-accent">
+                <label key={b.id} className="inline-flex cursor-pointer items-center gap-1.5 rounded-[10px] bg-carte-haut px-2.5 py-[7px] text-[12px] text-doux has-[:checked]:border-accent/40 has-[:checked]:bg-accent/10 has-[:checked]:text-accent">
                   <input type="checkbox" name="boutiques" value={b.id} className="sr-only" />{b.name}
                 </label>
               ))}
