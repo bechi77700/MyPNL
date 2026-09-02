@@ -129,7 +129,7 @@ export default async function IntegrationsPage({
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <form action="/api/connect/meta/start" method="post">
             <input type="hidden" name="slug" value={slug} />
-            <Bouton type="submit">
+            <Bouton type="submit" variante={meta?.status === "connected" ? "discret" : "principal"}>
               {meta?.status === "connected" ? "Reconnecter Meta" : "Connecter Meta"}
             </Bouton>
           </form>

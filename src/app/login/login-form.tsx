@@ -15,7 +15,18 @@ export default function LoginForm({
   const [email, setEmail] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
+
+  async function motDePasseOublie() {
+    if (!email) { setErreur("Entre ton email d'abord."); return; }
+    setErreur(null);
+    const { error } = await createClient().auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset`,
+    });
+    if (error) setErreur(traduire(error.message));
+    else setInfo("Email envoyé. Ouvre le lien qu'il contient pour choisir un nouveau mot de passe.");
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -71,6 +82,9 @@ export default function LoginForm({
         />
       </div>
 
+      {info && (
+        <p className="rounded-[8px] border border-accent/40 bg-accent/10 px-3.5 py-2.5 text-[13px] text-accent">{info}</p>
+      )}
       {erreur && (
         <p className="rounded-[7px] border border-negatif/40 bg-negatif/10 px-3.5 py-2.5 text-[13px] text-negatif">
           {erreur}
@@ -80,7 +94,7 @@ export default function LoginForm({
       <button
         type="submit"
         disabled={enCours}
-        className="w-full rounded-[7px] bg-accent px-4 py-2.5 font-medium text-[#08210b] transition-colors hover:bg-accent-vif disabled:cursor-not-allowed disabled:opacity-50"
+        className="btn-principal w-full rounded-[8px] px-4 py-2.5 font-semibold disabled:cursor-not-allowed disabled:opacity-50"
       >
         {enCours
           ? "Un instant…"
@@ -88,6 +102,12 @@ export default function LoginForm({
             ? "Créer mon compte administrateur"
             : "Se connecter"}
       </button>
+      {!premierCompte && (
+        <button type="button" onClick={motDePasseOublie}
+          className="w-full text-center text-[12px] text-faible transition-colors hover:text-doux">
+          Mot de passe oublié ?
+        </button>
+      )}
     </form>
   );
 }

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { formaterMontant, formaterPourcent, resoudrePeriode } from "@/lib/periode";
+import { aujourdhui, formaterMontant, formaterPourcent, resoudrePeriode } from "@/lib/periode";
 import BarreRapport from "@/components/barre-rapport";
-import { Carte } from "@/components/ui";
+import { Bouton, Carte } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -50,7 +50,7 @@ export default async function PnlPage({
 }) {
   const { slug } = await params;
   const sp = await searchParams;
-  const grain = sp.grain === "day" ? "day" : "month";
+  const grain = sp.grain === "day" ? "day" : sp.grain === "quarter" ? "quarter" : "month";
 
   const supabase = await createClient();
   const { data: boutique } = await supabase
@@ -77,10 +77,23 @@ export default async function PnlPage({
       ? `(${formaterMontant(Math.abs(v), devise, true)})`
       : formaterMontant(v, devise, true);
 
-  const enTete = (b: string) =>
-    grain === "month"
-      ? new Date(b + "T12:00:00Z").toLocaleDateString("fr-FR", { month: "short", year: "2-digit" })
-      : new Date(b + "T12:00:00Z").toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
+  const enTete = (b: string) => {
+    const d = new Date(b + "T12:00:00Z");
+    if (grain === "quarter") return `T${Math.floor(d.getUTCMonth() / 3) + 1} ${String(d.getUTCFullYear()).slice(2)}`;
+    if (grain === "month") return d.toLocaleDateString("fr-FR", { month: "short", year: "2-digit" });
+    return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
+  };
+  // La colonne en cours est incomplete : on la signale plutot que de laisser croire a une baisse.
+  const auj = aujourdhui(boutique!.timezone);
+  const enCours = (b: string) =>
+    grain === "day" ? b === auj
+    : grain === "month" ? b.slice(0, 7) === auj.slice(0, 7)
+    : Math.floor(Number(b.slice(5, 7)) / 3.01) === Math.floor(Number(auj.slice(5, 7)) / 3.01) && b.slice(0, 4) === auj.slice(0, 4);
+  const lienExport = () => {
+    const q = new URLSearchParams({ slug, grain });
+    if (sp.p) q.set("p", sp.p); if (sp.du) q.set("du", sp.du); if (sp.au) q.set("au", sp.au);
+    return `/api/export/pnl?${q}`;
+  };
 
   const lienGrain = (g: string) => {
     const q = new URLSearchParams();
@@ -105,7 +118,7 @@ export default async function PnlPage({
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <span className="surtitre">Granularité</span>
         <div className="flex gap-1.5">
-          {[["month", "Par mois"], ["day", "Par jour"]].map(([g, label]) => (
+          {[["day", "Jour"], ["month", "Mois"], ["quarter", "Trimestre"]].map(([g, label]) => (
             <Link
               key={g}
               href={lienGrain(g)}
@@ -135,8 +148,9 @@ export default async function PnlPage({
                     Poste
                   </th>
                   {lignes.map((l) => (
-                    <th key={l.bucket} className="px-3 py-2.5 text-right font-medium">
+                    <th key={l.bucket} className={`px-3 py-2.5 text-right font-medium ${enCours(l.bucket) ? "bg-accent/[0.06] text-accent" : ""}`}>
                       {enTete(l.bucket)}
+                      {enCours(l.bucket) && <span className="ml-1 text-[9px] normal-case tracking-normal opacity-80">en cours</span>}
                     </th>
                   ))}
                   <th className="sticky right-[84px] z-10 w-[112px] min-w-[112px] border-l border-bord bg-carte-haut px-3 py-2.5 text-right font-medium text-doux shadow-[-6px_0_8px_-6px_rgba(0,0,0,0.6)]">Total</th>
@@ -168,7 +182,7 @@ export default async function PnlPage({
                         return (
                           <td
                             key={l.bucket}
-                            className={`chiffres px-3 py-[9px] text-right ${
+                            className={`chiffres px-3 py-[9px] text-right ${enCours(l.bucket) ? "bg-accent/[0.04]" : ""} ${
                               nul ? "text-faible/40"
                               : p.cout ? "text-faible" : p.total ? "text-texte" : "text-doux"
                             } ${p.total && v < 0 ? "text-negatif" : ""}`}

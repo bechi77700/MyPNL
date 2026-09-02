@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formaterMontant, formaterNombre, formaterPourcent, resoudrePeriode } from "@/lib/periode";
 import BarreRapport from "@/components/barre-rapport";
-import { Carte, Champ, Pastille } from "@/components/ui";
+import { Bouton, Carte, Champ, Pastille } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -80,6 +80,12 @@ export default async function OrdersPage({
         derniereSynchro={(conn?.last_sync_at as string | null) ?? null}
       />
       <div className="mb-4 flex flex-wrap items-center gap-3">
+        <a href={`/api/export/orders?${new URLSearchParams({ slug, ...(sp.p ? { p: sp.p } : {}), ...(sp.du ? { du: sp.du } : {}), ...(sp.au ? { au: sp.au } : {}) })}`}>
+          <Bouton variante="discret" type="button">
+            <svg width="13" height="13" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M9 2.5v9M5.5 8 9 11.5 12.5 8M3 13v2.5h12V13" /></svg>
+            Exporter CSV
+          </Bouton>
+        </a>
         <form method="get" className="ml-auto flex gap-2">
           {sp.p && <input type="hidden" name="p" value={sp.p} />}
           <Champ name="q" defaultValue={recherche} placeholder="N° de commande…" className="w-44 text-[13px]" />

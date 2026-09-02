@@ -2,7 +2,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { chargerSkus, nomSku } from "@/lib/skus";
 import { enregistrerShipping } from "@/lib/actions/couts";
-import { Bouton, Carte, EnTetePage, Message } from "@/components/ui";
+import { Carte, EnTetePage, Message } from "@/components/ui";
+import FormulaireSuivi from "@/components/formulaire-suivi";
 
 export const dynamic = "force-dynamic";
 
@@ -101,8 +102,11 @@ export default async function ShippingPage({
         {remplis} / {expediables.length} produits renseignés pour {paysActif}
       </p>
 
-      <form action={enregistrerShipping.bind(null, slug)}>
-        <input type="hidden" name="pays" value={paysActif} />
+      <FormulaireSuivi
+        action={enregistrerShipping.bind(null, slug)}
+        libelleBouton={`Enregistrer la grille ${paysActif}`}
+        champsCaches={<input type="hidden" name="pays" value={paysActif} />}
+      >
         <Carte className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
@@ -139,16 +143,16 @@ export default async function ShippingPage({
                       <td className="px-3 py-[9px] text-right">
                         <input
                           type="number" step="0.01" min="0"
-                          name={`std__${s.sku}`} defaultValue={g?.standard || ""}
-                          placeholder="0.00"
+                          name={`std__${s.sku}`} defaultValue={g?.standard ? Number(g.standard).toFixed(2) : ""}
+                          placeholder="0,00" lang="fr"
                           className="chiffres w-24 rounded-[7px] border border-bord bg-fond px-2.5 py-1.5 text-right text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
                         />
                       </td>
                       <td className="px-4 py-[9px] text-right">
                         <input
                           type="number" step="0.01" min="0"
-                          name={`ups__${s.sku}`} defaultValue={g?.upsell || ""}
-                          placeholder="0.00"
+                          name={`ups__${s.sku}`} defaultValue={g?.upsell ? Number(g.upsell).toFixed(2) : ""}
+                          placeholder="0,00" lang="fr"
                           className="chiffres w-24 rounded-[7px] border border-bord bg-fond px-2.5 py-1.5 text-right text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
                         />
                       </td>
@@ -159,10 +163,7 @@ export default async function ShippingPage({
             </table>
           </div>
         </Carte>
-        <Bouton type="submit" className="mt-4">
-          Enregistrer la grille {paysActif}
-        </Bouton>
-      </form>
+      </FormulaireSuivi>
     </div>
   );
 }

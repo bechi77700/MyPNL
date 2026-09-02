@@ -2,7 +2,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { chargerSkus, nomSku, sansCout, type Sku } from "@/lib/skus";
 import { enregistrerProduits } from "@/lib/actions/couts";
-import { Bouton, Carte, EnTetePage, Message, Pastille } from "@/components/ui";
+import { Carte, EnTetePage, Message, Pastille } from "@/components/ui";
+import FormulaireSuivi from "@/components/formulaire-suivi";
+import { formaterMontant } from "@/lib/periode";
 
 export const dynamic = "force-dynamic";
 
@@ -39,8 +41,11 @@ export default async function ProduitsPage({
       />
       <Message ok={ok} erreur={erreur} />
 
-      <form action={enregistrerProduits.bind(null, slug)}>
-        <input type="hidden" name="voir" value={voir ?? ""} />
+      <FormulaireSuivi
+        action={enregistrerProduits.bind(null, slug)}
+        libelleBouton="Enregistrer les coûts"
+        champsCaches={<input type="hidden" name="voir" value={voir ?? ""} />}
+      >
         <Carte className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
@@ -82,13 +87,13 @@ export default async function ProduitsPage({
                     <td className="chiffres px-3 py-[9px] text-right text-doux">{s.orders_count}</td>
                     <td className="chiffres px-3 py-[9px] text-right text-doux">{s.units}</td>
                     <td className="chiffres px-3 py-[9px] text-right text-faible">
-                      {s.price != null ? Number(s.price).toFixed(2) : "—"}
+                      {s.price != null ? formaterMontant(Number(s.price), devise) : "—"}
                     </td>
                     <td className="px-3 py-[9px] text-right">
                       <input
                         type="number" step="0.01" min="0"
-                        name={`cout__${s.sku}`} defaultValue={s.cost || ""}
-                        placeholder="0.00"
+                        name={`cout__${s.sku}`} defaultValue={s.cost ? Number(s.cost).toFixed(2) : ""}
+                        placeholder="0,00" lang="fr"
                         className="chiffres w-24 rounded-[7px] border border-bord bg-fond px-2.5 py-1.5 text-right text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
                       />
                     </td>
@@ -107,7 +112,6 @@ export default async function ProduitsPage({
         </Carte>
 
         <div className="mt-4 flex flex-wrap items-center gap-4">
-          <Bouton type="submit">Enregistrer</Bouton>
           {inactifsVendus.length > 0 && (
             <Link
               href={`/dashboard/${slug}/produits${tout ? "" : "?voir=tout"}`}
@@ -119,7 +123,7 @@ export default async function ProduitsPage({
             </Link>
           )}
         </div>
-      </form>
+      </FormulaireSuivi>
 
       <p className="mt-6 max-w-2xl text-[11.5px] leading-relaxed text-faible">
         Coche <b className="text-doux">ne s&apos;expédie pas</b> pour les produits

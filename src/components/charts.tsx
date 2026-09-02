@@ -123,11 +123,23 @@ export function Courbe({
                 </text>
               </g>
             ))}
+            <defs>
+              <linearGradient id="aire-accent" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor={ACCENT} stopOpacity="0.28" />
+                <stop offset="1" stopColor={ACCENT} stopOpacity="0" />
+              </linearGradient>
+              <filter id="lueur" x="-10%" y="-40%" width="120%" height="180%">
+                <feGaussianBlur stdDeviation="2.2" result="b" />
+                <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+              </filter>
+            </defs>
             {dComp && (
               <path d={dComp} fill="none" stroke="#5a5a5a" strokeWidth={1.5}
                 strokeDasharray="3 4" strokeLinejoin="round" strokeLinecap="round" />
             )}
-            <path d={aire} fill={ACCENT} opacity={0.1} />
+            <path d={aire} fill="url(#aire-accent)" />
+            <path d={d} fill="none" stroke={ACCENT} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round"
+              filter="url(#lueur)" opacity={0.55} />
             <path d={d} fill="none" stroke={ACCENT} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
             {survol !== null && points[survol] && (
               <>
@@ -205,6 +217,14 @@ export function Colonnes({
       {L > 0 && (
         <svg width={L} height={hauteur} className="block" onMouseLeave={() => setSurvol(null)}>
           <g transform={`translate(${marge.g},${marge.h})`}>
+            <defs>
+              <linearGradient id="barre-pos" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#4de621" /><stop offset="1" stopColor={ACCENT} />
+              </linearGradient>
+              <linearGradient id="barre-neg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor={NEGATIF} /><stop offset="1" stopColor="#c9403a" />
+              </linearGradient>
+            </defs>
             {ticks.map((t) => (
               <g key={t}>
                 <line x1={0} x2={w} y1={py(t)} y2={py(t)}
@@ -228,8 +248,9 @@ export function Colonnes({
                   x={i * bande + (bande - epaisseur) / 2}
                   y={top} width={epaisseur} height={Math.max(0, hb)}
                   rx={Math.min(4, epaisseur / 2)}
-                  fill={negatif ? NEGATIF : ACCENT}
-                  opacity={survol === null || survol === i ? 1 : 0.45}
+                  fill={negatif ? "url(#barre-neg)" : "url(#barre-pos)"}
+                  opacity={survol === null || survol === i ? 1 : 0.4}
+                  style={{ transition: "opacity .15s ease" }}
                   onMouseEnter={() => setSurvol(i)}
                 />
               );
@@ -270,24 +291,27 @@ export function BarreRepartition({
 
   return (
     <div>
-      <div className="flex h-2.5 w-full gap-[2px] overflow-hidden rounded-full">
+      <div className="flex h-3 w-full gap-[3px] overflow-hidden rounded-full bg-carte-haut p-[2px]">
         {visibles.map((p, i) => (
           <div
             key={p.label}
+            className="rounded-full transition-[filter] hover:brightness-125"
             style={{
               width: `${(p.valeur / total) * 100}%`,
-              backgroundColor: SERIES[i % SERIES.length],
+              background: `linear-gradient(180deg, rgb(255 255 255 / 0.18), transparent 60%), ${SERIES[i % SERIES.length]}`,
+              boxShadow: `0 0 10px -2px ${SERIES[i % SERIES.length]}80`,
             }}
             title={`${p.label} · ${format(p.valeur)}`}
           />
         ))}
       </div>
-      <ul className="mt-4 grid gap-x-6 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Grille fixe : plus de libelle orphelin sur sa propre ligne. */}
+      <ul className="mt-4 grid grid-cols-1 gap-x-8 gap-y-2.5 sm:grid-cols-2 xl:grid-cols-3">
         {visibles.map((p, i) => (
           <li key={p.label} className="flex items-center gap-2.5">
             <span
               className="size-2.5 shrink-0 rounded-full"
-              style={{ backgroundColor: SERIES[i % SERIES.length] }}
+              style={{ backgroundColor: SERIES[i % SERIES.length], boxShadow: `0 0 8px ${SERIES[i % SERIES.length]}66` }}
             />
             <span className="min-w-0 flex-1 truncate text-[12.5px] text-doux">{p.label}</span>
             <span className="chiffres text-[12.5px] text-texte">{format(p.valeur)}</span>

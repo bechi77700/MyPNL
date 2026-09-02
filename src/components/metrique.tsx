@@ -23,12 +23,12 @@ export const ICONES: Record<string, React.ReactNode> = {
 };
 
 const TEINTES = {
-  bleu: "text-s1 bg-s1/10",
-  orange: "text-s2 bg-s2/10",
-  vert: "text-s3 bg-s3/10",
-  jaune: "text-s4 bg-s4/10",
-  rose: "text-s5 bg-s5/10",
-  accent: "text-accent bg-accent/10",
+  bleu:   "text-s1 bg-s1/12 shadow-[0_0_18px_-4px_rgb(57_135_229/0.55)]",
+  orange: "text-s2 bg-s2/12 shadow-[0_0_18px_-4px_rgb(217_89_38/0.55)]",
+  vert:   "text-s3 bg-s3/12 shadow-[0_0_18px_-4px_rgb(25_158_112/0.55)]",
+  jaune:  "text-s4 bg-s4/12 shadow-[0_0_18px_-4px_rgb(201_133_0/0.55)]",
+  rose:   "text-s5 bg-s5/12 shadow-[0_0_18px_-4px_rgb(213_81_129/0.55)]",
+  accent: "text-accent bg-accent/12 shadow-[0_0_18px_-4px_rgb(45_202_2/0.55)]",
   neutre: "text-doux bg-carte-haut",
 } as const;
 
@@ -42,11 +42,11 @@ export function Metrique({
   label: string; valeur: string; delta?: number | null; note?: string;
 }) {
   return (
-    <div className="rounded-[9px] border border-bord bg-carte px-4 py-3.5">
-      <div className="flex items-center gap-2">
+    <div className="carte carte-survol rounded-[10px] border border-bord bg-carte px-4 py-3.5">
+      <div className="flex items-center gap-2.5">
         {icone && (
-          <span className={`flex size-[26px] shrink-0 items-center justify-center rounded-[7px] ${TEINTES[teinte]}`}>
-            <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden>{ICONES[icone]}</svg>
+          <span className={`puce flex size-[30px] shrink-0 items-center justify-center rounded-[9px] ${TEINTES[teinte]}`}>
+            <svg width="17" height="17" viewBox="0 0 18 18" aria-hidden>{ICONES[icone]}</svg>
           </span>
         )}
         <span className="truncate text-[12px] text-faible">{label}</span>
@@ -64,20 +64,24 @@ export function Metrique({
 
 /** Variante compacte, sans carte : pour les grilles internes. */
 export function MetriqueLigne({
-  icone, teinte = "neutre", label, valeur,
+  icone, teinte = "neutre", label, valeur, delta, inverse,
 }: {
   icone?: keyof typeof ICONES; teinte?: Teinte; label: string; valeur: string;
+  delta?: number | null; inverse?: boolean;
 }) {
   return (
     <div className="flex items-center gap-2.5">
       {icone && (
-        <span className={`flex size-[26px] shrink-0 items-center justify-center rounded-[7px] ${TEINTES[teinte]}`}>
-          <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden>{ICONES[icone]}</svg>
+        <span className={`puce flex size-[32px] shrink-0 items-center justify-center rounded-[9px] ${TEINTES[teinte]}`}>
+          <svg width="17" height="17" viewBox="0 0 18 18" aria-hidden>{ICONES[icone]}</svg>
         </span>
       )}
       <div className="min-w-0">
         <p className="truncate text-[11.5px] text-faible">{label}</p>
         <p className="chiffres text-[15px] font-medium leading-tight text-texte">{valeur}</p>
+        {delta !== undefined && delta !== null && (
+          <div className="mt-1"><Delta valeur={delta} inverse={inverse} /></div>
+        )}
       </div>
     </div>
   );

@@ -19,10 +19,20 @@ export default async function ChargesPage({
   params, searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ ok?: string; erreur?: string }>;
+  searchParams: Promise<{ ok?: string; erreur?: string; label?: string; category?: string; kind?: string; amount?: string }>;
 }) {
   const { slug } = await params;
-  const { ok, erreur } = await searchParams;
+  const { ok, erreur, label: preLabel, category: preCat, kind: preKind, amount: preMontant } = await searchParams;
+  const EXEMPLES: [string, string, string, string][] = [
+    ["Shopify Advanced", "shopify", "monthly", "399"],
+    ["Klaviyo", "fixed", "monthly", "150"],
+    ["Comptable", "partner", "monthly", "200"],
+    ["Ma rémunération", "owner_salary", "monthly", "3000"],
+    ["Freelance créa", "partner", "one_off", "500"],
+    ["Emballage", "logistics", "per_order", "0.35"],
+  ];
+  const lienExemple = (e: [string, string, string, string]) =>
+    `/dashboard/${slug}/custom-costs?${new URLSearchParams({ label: e[0], category: e[1], kind: e[2], amount: e[3] })}#ajouter`;
 
   const supabase = await createClient();
   const { data: boutique } = await supabase
@@ -102,33 +112,44 @@ export default async function ChargesPage({
           </div>
         </Carte>
       ) : (
-        <Carte className="px-6 py-12 text-center">
-          <p className="text-doux">Aucune charge enregistrée.</p>
-          <p className="mt-1.5 text-[13px] text-faible">
-            Ajoute tes abonnements, salaires et frais récurrents ci-dessous.
+        <Carte className="relative overflow-hidden px-6 py-10 text-center">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(420px_140px_at_50%_0%,rgb(45_202_2/0.12),transparent_70%)]" />
+          <p className="text-[14px] font-medium text-texte">Aucune charge enregistrée</p>
+          <p className="mx-auto mt-1.5 max-w-md text-[13px] text-faible">
+            Tant que tes charges ne sont pas saisies, le profit net est surévalué.
+            Commence par un exemple, tu ajusteras le montant.
           </p>
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            {EXEMPLES.map((e) => (
+              <a key={e[0]} href={lienExemple(e)}
+                className="btn-discret inline-flex items-center gap-1.5 rounded-[8px] border border-bord px-3 py-[7px] text-[12.5px] text-doux hover:text-texte">
+                <span className="text-accent">+</span> {e[0]}
+              </a>
+            ))}
+          </div>
         </Carte>
       )}
 
-      <Carte className="mt-4 px-5 py-5">
+      <Carte className="mt-4 px-5 py-5" >
+        <div id="ajouter" />
         <form action={ajouterCharge.bind(null, slug)} className="flex flex-wrap items-end gap-2.5">
           <label className="flex flex-col gap-1.5">
             <span className="text-[11.5px] text-faible">Libellé</span>
-            <Champ name="label" required placeholder="Klaviyo" className="w-44" />
+            <Champ name="label" required placeholder="Klaviyo" className="w-44" defaultValue={preLabel ?? ""} />
           </label>
           <label className="flex flex-col gap-1.5">
             <span className="text-[11.5px] text-faible">Catégorie</span>
-            <select name="category" className={cls}>
+            <select name="category" className={cls} defaultValue={preCat ?? "fixed"}>
               {CATEGORIES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </label>
           <label className="flex flex-col gap-1.5">
             <span className="text-[11.5px] text-faible">Montant ({devise})</span>
-            <Champ name="amount" type="number" step="0.01" min="0" required className="chiffres w-28 text-right" />
+            <Champ name="amount" type="number" step="0.01" min="0" required className="chiffres w-28 text-right" defaultValue={preMontant ?? ""} />
           </label>
           <label className="flex flex-col gap-1.5">
             <span className="text-[11.5px] text-faible">Type</span>
-            <select name="kind" className={cls}>
+            <select name="kind" className={cls} defaultValue={preKind ?? "monthly"}>
               {TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </label>

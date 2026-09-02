@@ -56,12 +56,12 @@ export default function BarreRapport({
     });
   };
 
-  const bouton = "rounded-[7px] px-2.5 py-[6px] text-[12.5px] transition-colors";
-  const inactif = `${bouton} border border-bord bg-carte text-doux hover:border-bord-fort hover:text-texte`;
-  const selection = `${bouton} bg-accent font-medium text-[#08210b]`;
+  const bouton = "inline-flex items-center gap-1.5 rounded-[8px] px-2.5 py-[6px] text-[12.5px]";
+  const inactif = `${bouton} btn-discret border border-bord text-doux hover:text-texte`;
+  const selection = `${bouton} btn-principal font-semibold`;
 
   return (
-    <div className="mb-5 flex flex-col gap-2">
+    <div className="verre sticky top-0 z-20 -mx-6 mb-5 flex flex-col gap-2 px-6 py-2.5 lg:top-0">
       <div className="flex flex-wrap items-center gap-1.5">
         {PRESETS.map(([p, label]) => (
           <Link key={p} href={lienPreset(p)} className={p === actif ? selection : inactif}>
@@ -73,7 +73,10 @@ export default function BarreRapport({
           onClick={() => setOuvert((o) => !o)}
           className={actif === "perso" ? selection : inactif}
         >
-          Dates…
+          <svg width="13" height="13" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2.5" y="3.5" width="13" height="12" rx="2" /><path d="M2.5 7.5h13M6 2v3M12 2v3" />
+          </svg>
+          Dates
         </button>
 
         {!sansActualisation && <>
@@ -106,7 +109,7 @@ export default function BarreRapport({
       </div>
 
       {ouvert && (
-        <div className="flex flex-wrap items-end gap-2 rounded-[9px] border border-bord bg-carte px-3 py-2.5">
+        <div className="carte apparait flex flex-wrap items-end gap-2 rounded-[9px] border border-bord bg-carte px-3 py-2.5">
           <label className="flex flex-col gap-1">
             <span className="text-[10.5px] text-faible">Du</span>
             <input type="date" value={debut} max={fin || undefined}

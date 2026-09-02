@@ -28,6 +28,15 @@ type Pnl = {
 
 type Serie = { bucket: string; orders_count: number; gross_sales: number; ebitda: number };
 
+function Groupe({ titre, children }: { titre: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-3.5">
+      <p className="surtitre">{titre}</p>
+      {children}
+    </div>
+  );
+}
+
 export default async function Dashboard({
   params, searchParams,
 }: {
@@ -123,11 +132,12 @@ export default async function Dashboard({
       )}
 
       {/* ── Héros ── */}
-      <Carte className="px-6 py-6">
-        <div className="grid gap-7 lg:grid-cols-[minmax(0,300px)_1fr] lg:items-center">
+      <Carte className="relative overflow-hidden px-6 py-6">
+        <div className="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full bg-accent/10 blur-3xl" />
+        <div className="relative grid gap-7 lg:grid-cols-[minmax(0,320px)_1fr] lg:items-center">
           <div>
             <p className="surtitre">Profit net · EBITDA</p>
-            <p className={`heros mt-3 text-[42px] font-semibold ${ebitda < 0 ? "text-negatif" : "text-texte"}`}>
+            <p className={`heros mt-3 text-[44px] font-semibold ${ebitda < 0 ? "text-negatif" : "text-texte"}`}>
               {m(ebitda)}
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -136,21 +146,30 @@ export default async function Dashboard({
                 contre {m(n(b.ebitda))} la période précédente
               </span>
             </div>
-            <p className="mt-4 text-[12px] text-faible">
-              Marge nette{" "}
-              <span className="chiffres text-doux">
-                {caHt > 0 ? formaterPourcent((ebitda / caHt) * 100) : "—"}
-              </span>
-            </p>
+            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1.5 text-[12px] text-faible">
+              <span>Marge nette <b className="chiffres font-medium text-doux">{caHt > 0 ? formaterPourcent((ebitda / caHt) * 100) : "—"}</b></span>
+              <span>Marge brute <b className="chiffres font-medium text-doux">{caHt > 0 ? formaterPourcent((n(a.gross_margin) / caHt) * 100) : "—"}</b></span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-5 gap-y-4 border-t border-bord pt-5 sm:grid-cols-3 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
-            <MetriqueLigne icone="commandes" teinte="bleu" label="Commandes" valeur={formaterNombre(n(a.orders_count))} />
-            <MetriqueLigne icone="argent" teinte="vert" label="Chiffre d'affaires" valeur={m(n(a.gross_sales))} />
-            <MetriqueLigne icone="cout" teinte="orange" label="Coûts totaux" valeur={m(coutsTotaux)} />
-            <MetriqueLigne icone="pub" teinte="rose" label="Dépense pub" valeur={m(n(a.ad_spend))} />
-            <MetriqueLigne icone="panier" teinte="jaune" label="Panier moyen" valeur={n(a.orders_count) ? m(n(a.gross_sales) / n(a.orders_count)) : "—"} />
-            <MetriqueLigne icone="marge" teinte="accent" label="Marge brute" valeur={m(n(a.gross_margin))} />
+          <div className="grid gap-5 border-t border-bord pt-5 sm:grid-cols-3 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
+            <Groupe titre="Ventes">
+              <MetriqueLigne icone="commandes" teinte="bleu" label="Commandes" valeur={formaterNombre(n(a.orders_count))} delta={evo(n(a.orders_count), n(b.orders_count))} />
+              <MetriqueLigne icone="argent" teinte="vert" label="Chiffre d'affaires" valeur={m(n(a.gross_sales))} delta={evo(n(a.gross_sales), n(b.gross_sales))} />
+              <MetriqueLigne icone="panier" teinte="jaune" label="Panier moyen" valeur={n(a.orders_count) ? m(n(a.gross_sales) / n(a.orders_count)) : "—"}
+                delta={n(a.orders_count) && n(b.orders_count) ? evo(n(a.gross_sales) / n(a.orders_count), n(b.gross_sales) / n(b.orders_count)) : null} />
+            </Groupe>
+            <Groupe titre="Coûts">
+              <MetriqueLigne icone="cout" teinte="orange" label="COGS" valeur={m(n(a.cogs))} delta={evo(n(a.cogs), n(b.cogs))} inverse />
+              <MetriqueLigne icone="pub" teinte="rose" label="Dépense pub" valeur={m(n(a.ad_spend))} delta={evo(n(a.ad_spend), n(b.ad_spend))} inverse />
+              <MetriqueLigne icone="frais" teinte="neutre" label="Frais + charges" valeur={m(n(a.transaction_fees) + n(a.opex) + n(a.owner_salary))} />
+            </Groupe>
+            <Groupe titre="Résultat">
+              <MetriqueLigne icone="marge" teinte="accent" label="Marge brute" valeur={m(n(a.gross_margin))} delta={evo(n(a.gross_margin), n(b.gross_margin))} />
+              <MetriqueLigne icone="profit" teinte="accent" label="Contribution" valeur={m(n(a.contribution))} delta={evo(n(a.contribution), n(b.contribution))} />
+              <MetriqueLigne icone="cible" teinte={roas !== null && seuil !== null ? (roas >= seuil ? "accent" : "rose") : "neutre"}
+                label="ROAS blended" valeur={roas !== null ? roas.toFixed(2) : "—"} />
+            </Groupe>
           </div>
         </div>
       </Carte>
