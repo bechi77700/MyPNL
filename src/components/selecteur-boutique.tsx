@@ -15,8 +15,8 @@ function ville(tz: string) {
  * retombe sur la MEME page (P&L, Orders...) de la boutique choisie.
  */
 export function SelecteurBoutique({
-  courante, boutiques, estAdmin,
-}: { courante: BoutiqueMenu; boutiques: BoutiqueMenu[]; estAdmin: boolean }) {
+  courante, boutiques, estAdmin, mobile = false,
+}: { courante: BoutiqueMenu; boutiques: BoutiqueMenu[]; estAdmin: boolean; mobile?: boolean }) {
   const [ouvert, setOuvert] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const chemin = usePathname();
@@ -31,6 +31,52 @@ export function SelecteurBoutique({
     document.addEventListener("keydown", touche);
     return () => { document.removeEventListener("mousedown", clic); document.removeEventListener("keydown", touche); };
   }, [ouvert]);
+
+  if (mobile) {
+    return (
+      <div ref={ref} className="min-w-0 flex-1">
+        <button
+          type="button"
+          onClick={() => setOuvert((o) => !o)}
+          aria-haspopup="listbox"
+          aria-expanded={ouvert}
+          className="btn-discret mx-auto flex max-w-full items-center gap-1.5 rounded-full px-3 py-[7px] text-[12.5px] font-medium text-texte"
+        >
+          <span className="grid size-5 shrink-0 place-items-center rounded-[6px] bg-accent text-[10.5px] font-semibold text-white">
+            {courante.name.slice(0, 1).toUpperCase()}
+          </span>
+          <span className="truncate">{courante.name}</span>
+          <svg viewBox="0 0 16 16" className={`size-3 shrink-0 text-faible transition-transform ${ouvert ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6l4 4 4-4" /></svg>
+        </button>
+        {ouvert && (
+          <div className="fixed inset-0 z-50">
+            <button aria-label="Fermer" onClick={() => setOuvert(false)} className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+            <div role="listbox" className="verre apparait safe-bas absolute inset-x-0 bottom-0 rounded-t-[18px] p-2 pt-3 shadow-[0_-16px_40px_rgb(0_0_0/0.5)]">
+              <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-bord-fort" />
+              <p className="surtitre px-3 pb-1.5 text-[10.5px]">Boutiques</p>
+              {boutiques.map((b) => {
+                const active = b.slug === courante.slug;
+                return (
+                  <Link key={b.slug} href={memePage(b.slug)} onClick={() => setOuvert(false)} role="option" aria-selected={active}
+                    className={`flex items-center gap-3 rounded-[12px] px-3 py-3 ${active ? "bg-accent/12 text-texte" : "text-doux active:bg-carte-haut"}`}>
+                    <span className={`grid size-8 shrink-0 place-items-center rounded-[9px] text-[13px] font-semibold ${active ? "bg-accent text-white" : "bg-carte-haut text-doux"}`}>{b.name.slice(0, 1).toUpperCase()}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px] font-medium">{b.name}</span>
+                      <span className="block text-[11px] text-faible">{b.currency} · {ville(b.timezone)}</span>
+                    </span>
+                    {active && <svg viewBox="0 0 16 16" className="size-4 text-accent" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8.5l3 3 7-7" /></svg>}
+                  </Link>
+                );
+              })}
+              <div className="mx-2 my-2 h-px bg-bord" />
+              <Link href="/overview" onClick={() => setOuvert(false)} className="flex items-center gap-3 rounded-[12px] px-3 py-3 text-[13.5px] text-doux active:bg-carte-haut">Toutes les boutiques</Link>
+              {estAdmin && <Link href="/select?tout=1" onClick={() => setOuvert(false)} className="flex items-center gap-3 rounded-[12px] px-3 py-3 text-[13.5px] text-doux active:bg-carte-haut">Ajouter une boutique</Link>}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div ref={ref} className="relative mt-5">

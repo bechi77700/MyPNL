@@ -28,7 +28,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-fond lg:flex">
-      <NavMobile slug={slug} boutique={boutique.name} estAdmin={estAdmin} />
+      <NavMobile slug={slug} boutique={boutique.name} estAdmin={estAdmin} courante={boutique} boutiques={toutes ?? [boutique]} />
       <aside className="hidden w-[224px] shrink-0 flex-col px-3 py-5 lg:flex">
         <div className="px-2.5 pt-1">
           <Logo />

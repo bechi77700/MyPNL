@@ -1,5 +1,6 @@
 "use client";
 
+import { SelecteurBoutique, type BoutiqueMenu } from "@/components/selecteur-boutique";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -131,8 +132,8 @@ export default function Nav({ slug, estAdmin = false }: { slug: string; estAdmin
 
 /** Barre et tiroir de navigation, uniquement sur petit écran. */
 export function NavMobile({
-  slug, boutique, estAdmin = false,
-}: { slug: string; boutique: string; estAdmin?: boolean }) {
+  slug, boutique, estAdmin = false, courante, boutiques = [],
+}: { slug: string; boutique: string; estAdmin?: boolean; courante?: BoutiqueMenu; boutiques?: BoutiqueMenu[] }) {
   const [ouvert, setOuvert] = useState(false);
   const chemin = usePathname();
 
@@ -146,6 +147,7 @@ export function NavMobile({
     <>
       <header className="verre safe-haut sticky top-0 z-30 flex items-center justify-between gap-3 px-4 pb-2.5 lg:hidden">
         <Logo />
+        {courante && <SelecteurBoutique mobile courante={courante} boutiques={boutiques} estAdmin={estAdmin} />}
         <button
           onClick={() => setOuvert(true)}
           aria-label="Ouvrir le menu"
