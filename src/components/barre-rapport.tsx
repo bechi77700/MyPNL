@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { PRESETS, type Preset } from "@/lib/periode";
@@ -23,7 +22,21 @@ export default function BarreRapport({
   const [debut, setDebut] = useState(du);
   const [fin, setFin] = useState(au);
   const [enCours, demarrer] = useTransition();
+  const [navigue, demarrerNav] = useTransition();
+  const [cible, setCible] = useState<string | null>(null);
   const [retour, setRetour] = useState<{ ok: boolean; message: string } | null>(null);
+
+  // Des le clic : la pastille visee s'allume et une barre de progression
+  // apparait. Sans ca, le recalcul serveur (0,5 a 1 s) semble ne rien faire.
+  const aller = (url: string, id: string) => {
+    setCible(id);
+    demarrerNav(() => router.push(url));
+  };
+  useEffect(() => { if (!navigue) setCible(null); }, [navigue]);
+  useEffect(() => {
+    document.querySelector("main")?.classList.toggle("en-attente", navigue);
+    return () => document.querySelector("main")?.classList.remove("en-attente");
+  }, [navigue]);
 
   useEffect(() => { setDebut(du); setFin(au); }, [du, au]);
   useEffect(() => {
@@ -45,7 +58,7 @@ export default function BarreRapport({
     if (!debut || !fin) return;
     const [a, b] = debut <= fin ? [debut, fin] : [fin, debut];
     const q = conserver(); q.delete("p"); q.set("du", a); q.set("au", b);
-    router.push(`${chemin}?${q}`);
+    aller(`${chemin}?${q}`, "perso");
   };
   const lancer = () => {
     setRetour(null);
@@ -62,16 +75,31 @@ export default function BarreRapport({
 
   return (
     <div className="verre sticky top-0 z-20 -mx-6 mb-5 flex flex-col gap-2 px-6 py-2.5 lg:top-0">
+      {navigue && <div className="progression" aria-hidden />}
       <div className="flex flex-wrap items-center gap-1.5">
-        {PRESETS.map(([p, label]) => (
-          <Link key={p} href={lienPreset(p)} className={p === actif ? selection : inactif}>
-            {label}
-          </Link>
-        ))}
+        {PRESETS.map(([p, label]) => {
+          const vise = cible === p;
+          const estActif = vise || (cible === null && p === actif);
+          return (
+            <button
+              key={p} type="button"
+              onClick={() => aller(lienPreset(p), p)}
+              disabled={navigue}
+              className={`${estActif ? selection : inactif} disabled:cursor-progress`}
+            >
+              {vise && (
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="animate-spin">
+                  <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" />
+                </svg>
+              )}
+              {label}
+            </button>
+          );
+        })}
         <button
           type="button"
           onClick={() => setOuvert((o) => !o)}
-          className={actif === "perso" ? selection : inactif}
+          className={(cible === "perso" || (cible === null && actif === "perso")) ? selection : inactif}
         >
           <svg width="13" height="13" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
             <rect x="2.5" y="3.5" width="13" height="12" rx="2" /><path d="M2.5 7.5h13M6 2v3M12 2v3" />

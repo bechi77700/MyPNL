@@ -133,7 +133,6 @@ export default async function Dashboard({
 
       {/* ── Héros ── */}
       <Carte className="relative overflow-hidden px-6 py-6">
-        <div className="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full bg-accent/10 blur-3xl" />
         <div className="relative grid gap-7 lg:grid-cols-[minmax(0,320px)_1fr] lg:items-center">
           <div>
             <p className="surtitre">Profit net · EBITDA</p>
