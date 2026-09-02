@@ -47,3 +47,6 @@ env.md
 
 # le workflow attend la permission 'workflow' sur le jeton GitHub
 .github/workflows/
+
+# le secret est dans la commande cron : on ne versionne pas ce fichier
+supabase/migrations/027_cron_pg.sql

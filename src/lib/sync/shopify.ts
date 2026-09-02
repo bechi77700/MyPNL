@@ -312,20 +312,29 @@ type TransactionSolde = {
 export async function syncFrais(
   admin: Admin, creds: Creds, shopId: string, timezone: string, depuis?: string,
 ) {
+  // Shopify ignore processed_at_min sur cet endpoint : sans curseur, il renvoie
+  // TOUT l'historique a chaque passage. On memorise le dernier id vu.
+  const { data: conn } = await admin
+    .from("connectors").select("sync_cursor")
+    .eq("shop_id", shopId).eq("platform", "shopify").maybeSingle();
+  const curseur = (conn?.sync_cursor ?? {}) as { fees_since_id?: number };
+  const incremental = !!depuis && !!curseur.fees_since_id;
+
   const parJour = new Map<string, number>();
   const parCommande = new Map<string, number>();
-  const filtres = new URLSearchParams({ limit: "250" });
-  if (depuis) filtres.set("processed_at_min", depuis);
+  let dernierId = curseur.fees_since_id ?? 0;
 
-  for await (const lot of pages<TransactionSolde>(
+  const filtres = new URLSearchParams({ limit: "250" });
+  if (incremental) filtres.set("since_id", String(curseur.fees_since_id));
+
+  for await (const lot of pages<TransactionSolde & { id: number }>(
     creds, `shopify_payments/balance/transactions.json?${filtres}`, "transactions",
   )) {
     for (const t of lot) {
+      if (t.id > dernierId) dernierId = t.id;
       const frais = Math.abs(nombre(t.fee));
       const jour = jourLocal(t.processed_at, timezone);
       parJour.set(jour, (parJour.get(jour) ?? 0) + frais);
-      // Shopify rattache la transaction a sa commande : on peut donc
-      // calculer un profit par commande plutot qu'une repartition au prorata.
       if (t.source_order_id) {
         const id = String(t.source_order_id);
         parCommande.set(id, (parCommande.get(id) ?? 0) + frais);
@@ -333,16 +342,15 @@ export async function syncFrais(
     }
   }
 
-  // Report des frais sur les commandes concernees.
-  const ids = [...parCommande.keys()];
-  for (let i = 0; i < ids.length; i += 200) {
-    await Promise.all(
-      ids.slice(i, i + 200).map((id) =>
-        admin.from("orders")
-          .update({ transaction_fee: parCommande.get(id) })
-          .eq("shop_id", shopId).eq("external_id", id),
-      ),
-    );
+  // En incremental, les jours touches doivent etre CUMULES avec l'existant :
+  // on ne voit que les nouvelles transactions, pas la journee entiere.
+  if (incremental && parJour.size) {
+    const jours = [...parJour.keys()];
+    const { data: existants } = await admin
+      .from("shop_fees_daily").select("date, fees")
+      .eq("shop_id", shopId).in("date", jours);
+    for (const e of existants ?? [])
+      parJour.set(e.date as string, (parJour.get(e.date as string) ?? 0) + Number(e.fees));
   }
 
   const lignes = [...parJour].map(([date, fees]) => ({
@@ -353,6 +361,26 @@ export async function syncFrais(
       .from("shop_fees_daily")
       .upsert(lignes.slice(i, i + 500), { onConflict: "shop_id,date" });
     if (error) throw new Error(`upsert frais : ${error.message}`);
+  }
+
+  // Frais par commande : une seule requete groupee au lieu d'un UPDATE par ligne.
+  if (parCommande.size) {
+    const ids = [...parCommande.keys()];
+    for (let i = 0; i < ids.length; i += 1000) {
+      const tranche = ids.slice(i, i + 1000);
+      const { error } = await admin.rpc("apply_order_fees", {
+        p_shop: shopId, p_ids: tranche,
+        p_fees: tranche.map((id) => parCommande.get(id)),
+        p_cumuler: incremental, // une nouvelle transaction s'ajoute aux frais connus
+      });
+      if (error) throw new Error(`frais par commande : ${error.message}`);
+    }
+  }
+
+  if (dernierId > (curseur.fees_since_id ?? 0)) {
+    await admin.from("connectors")
+      .update({ sync_cursor: { ...curseur, fees_since_id: dernierId } })
+      .eq("shop_id", shopId).eq("platform", "shopify");
   }
   return lignes.length;
 }
