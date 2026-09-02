@@ -18,9 +18,13 @@ export function urlAutorisationMeta(opts: {
     client_id: opts.clientId,
     redirect_uri: opts.redirectUri,
     state: opts.state,
-    scope: META_SCOPES,
     response_type: "code",
   });
+  // "Facebook Login for Business" porte les permissions dans une configuration
+  // cote Meta : on passe son identifiant plutot qu'une liste de scopes.
+  const config = process.env.META_LOGIN_CONFIG_ID;
+  if (config) p.set("config_id", config);
+  else p.set("scope", META_SCOPES);
   return `https://www.facebook.com/${META_API_VERSION}/dialog/oauth?${p}`;
 }
 
