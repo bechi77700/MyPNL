@@ -26,6 +26,7 @@ type Pnl = {
 };
 
 type Serie = { bucket: string; orders_count: number; gross_sales: number; ebitda: number };
+type Heure = { hour: number; orders_count: number; revenue: number };
 
 function Groupe({ titre, children }: { titre: string; children: React.ReactNode }) {
   return (
@@ -62,12 +63,17 @@ export default async function Dashboard({
   const d = (paquet ?? {}) as {
     actuel?: Partial<Pnl>; precedent?: Partial<Pnl>;
     serie?: Serie[]; serie_avant?: Serie[]; sans_cout?: number;
+    horaire?: Heure[] | null; horaire_avant?: Heure[] | null;
     renouvellements?: Renouvellement[]; derniere_synchro?: string | null;
   };
   const actuel = d.actuel ? [d.actuel] : [];
   const precedent = d.precedent ? [d.precedent] : [];
   const serie = d.serie ?? [];
   const serieAvant = d.serie_avant ?? [];
+  // Sur une seule journee, "par jour" n'a pas de sens : on passe a l'heure.
+  const unJour = periode.du === periode.au && Array.isArray(d.horaire);
+  const heures = (d.horaire ?? []) as Heure[];
+  const heuresAvant = (d.horaire_avant ?? []) as Heure[];
   const renouv = d.renouvellements ?? [];
   const conn = { last_sync_at: d.derniere_synchro ?? null };
 
@@ -210,35 +216,60 @@ export default async function Dashboard({
       </Section>
 
       {/* ── Courbes ── */}
-      <Section titre="Profit net par jour" className="mt-3"
-        action={<span className="text-[11px] text-faible">après COGS, frais, pub et charges</span>}>
-        <div className="px-5 py-5">
-          <Colonnes
-            points={jours.map((j) => ({ x: j.bucket, y: Number(j.ebitda) }))}
-            unite="monnaie" devise={devise} hauteur={190}
-          />
+      {unJour ? (
+        <div className="mt-3 grid gap-3 lg:grid-cols-2">
+          <Section titre="Chiffre d'affaires par heure"
+            action={<span className="text-[11px] text-faible">pointillé : {periode.preset === "aujourdhui" ? "hier" : "la veille"}</span>}>
+            <div className="px-5 py-5">
+              <Courbe
+                points={heures.map((h) => ({ x: String(h.hour), y: Number(h.revenue) }))}
+                comparaison={heuresAvant.map((h) => ({ x: String(h.hour), y: Number(h.revenue) }))}
+                unite="monnaie" devise={devise} grain="hour"
+              />
+            </div>
+          </Section>
+          <Section titre="Commandes par heure">
+            <div className="px-5 py-5">
+              <Colonnes
+                points={heures.map((h) => ({ x: String(h.hour), y: Number(h.orders_count) }))}
+                unite="nombre" grain="hour"
+              />
+            </div>
+          </Section>
         </div>
-      </Section>
+      ) : (
+        <>
+          <Section titre="Profit net par jour" className="mt-3"
+            action={<span className="text-[11px] text-faible">après COGS, frais, pub et charges</span>}>
+            <div className="px-5 py-5">
+              <Colonnes
+                points={jours.map((j) => ({ x: j.bucket, y: Number(j.ebitda) }))}
+                unite="monnaie" devise={devise} hauteur={190}
+              />
+            </div>
+          </Section>
 
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
-        <Section titre="Chiffre d'affaires par jour">
-          <div className="px-5 py-5">
-            <Courbe
-              points={jours.map((j) => ({ x: j.bucket, y: Number(j.gross_sales) }))}
-              comparaison={joursAvant.map((j) => ({ x: j.bucket, y: Number(j.gross_sales) }))}
-              unite="monnaie" devise={devise}
-            />
+          <div className="mt-3 grid gap-3 lg:grid-cols-2">
+            <Section titre="Chiffre d'affaires par jour">
+              <div className="px-5 py-5">
+                <Courbe
+                  points={jours.map((j) => ({ x: j.bucket, y: Number(j.gross_sales) }))}
+                  comparaison={joursAvant.map((j) => ({ x: j.bucket, y: Number(j.gross_sales) }))}
+                  unite="monnaie" devise={devise}
+                />
+              </div>
+            </Section>
+            <Section titre="Commandes par jour">
+              <div className="px-5 py-5">
+                <Colonnes
+                  points={jours.map((j) => ({ x: j.bucket, y: Number(j.orders_count) }))}
+                  unite="nombre"
+                />
+              </div>
+            </Section>
           </div>
-        </Section>
-        <Section titre="Commandes par jour">
-          <div className="px-5 py-5">
-            <Colonnes
-              points={jours.map((j) => ({ x: j.bucket, y: Number(j.orders_count) }))}
-              unite="nombre"
-            />
-          </div>
-        </Section>
-      </div>
+        </>
+      )}
 
       {/* ── Acquisition ── */}
       <div className="mt-3">

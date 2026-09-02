@@ -21,7 +21,7 @@ function faireFormatAxe(unite: Unite, devise: string) {
     notation: "compact", maximumFractionDigits: 1,
   });
   const symbole = unite === "monnaie"
-    ? (0).toLocaleString("fr-FR", { style: "currency", currency: devise })
+    ? (0).toLocaleString("fr-FR", { style: "currency", currency: devise, currencyDisplay: "narrowSymbol" })
         .replace(/[\d\s,.\u00a0]/g, "")
     : "";
   return (v: number) => (v === 0 ? "0" : compact.format(v) + (symbole ? " " + symbole : ""));
@@ -37,6 +37,9 @@ const jourCourt = (x: string) =>
   new Date(x + "T12:00:00Z").toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 const moisCourt = (x: string) =>
   new Date(x + "T12:00:00Z").toLocaleDateString("fr-FR", { month: "short", year: "2-digit" });
+const heureCourte = (x: string) => `${Number(x)} h`;
+type Grain = "day" | "month" | "hour";
+const libelleSelon = (g: Grain) => g === "month" ? moisCourt : g === "hour" ? heureCourte : jourCourt;
 
 /** Palette categorielle validee pour notre fond sombre (#1a1a1a). */
 export const SERIES = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181"];
@@ -74,11 +77,11 @@ export function Courbe({
   points, comparaison, hauteur = 200, unite = "monnaie", devise = "USD", grain = "day",
 }: {
   points: Point[]; comparaison?: Point[]; hauteur?: number;
-  unite?: Unite; devise?: string; grain?: "day" | "month";
+  unite?: Unite; devise?: string; grain?: Grain;
 }) {
   const format = faireFormat(unite, devise);
   const formatAxe = faireFormatAxe(unite, devise);
-  const libelleX = grain === "month" ? moisCourt : jourCourt;
+  const libelleX = libelleSelon(grain);
   const [ref, L] = useLargeur();
   const [survol, setSurvol] = useState<number | null>(null);
   const max = Math.max(1, ...points.map((p) => p.y), ...(comparaison ?? []).map((p) => p.y));
@@ -137,6 +140,9 @@ export function Courbe({
               <path d={dComp} fill="none" stroke="#5a5a5a" strokeWidth={1.5}
                 strokeDasharray="3 4" strokeLinejoin="round" strokeLinecap="round" />
             )}
+            {points.length === 1 && (
+              <circle cx={px(0)} cy={py(points[0].y)} r={5} fill={ACCENT} stroke={SURFACE} strokeWidth={2} />
+            )}
             <path d={aire} fill="url(#aire-accent)" />
             <path d={d} fill="none" stroke={ACCENT} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round"
               filter="url(#lueur)" opacity={0.55} />
@@ -186,26 +192,31 @@ export function Colonnes({
   points, hauteur = 180, unite = "nombre", devise = "USD", grain = "day",
 }: {
   points: Point[]; hauteur?: number;
-  unite?: Unite; devise?: string; grain?: "day" | "month";
+  unite?: Unite; devise?: string; grain?: Grain;
 }) {
   const format = faireFormat(unite, devise);
   const formatAxe = faireFormatAxe(unite, devise);
-  const libelleX = grain === "month" ? moisCourt : jourCourt;
+  const libelleX = libelleSelon(grain);
   const [ref, L] = useLargeur();
   const [survol, setSurvol] = useState<number | null>(null);
-  const max = Math.max(1, ...points.map((p) => p.y));
-  const min = Math.min(0, ...points.map((p) => p.y));
-  const ticksPos = ticksY(max, 3);
-  // Sous zero, memes pas que dessus : l'axe reste lisible.
-  const pas = ticksPos.length > 1 ? ticksPos[1] - ticksPos[0] : 1;
-  const ticksNeg: number[] = [];
-  for (let v = -pas; v >= min * 1.001; v -= pas) ticksNeg.push(v);
-  const ticks = [...ticksNeg.reverse(), ...ticksPos];
+  const maxBrut = Math.max(0, ...points.map((p) => p.y));
+  const minBrut = Math.min(0, ...points.map((p) => p.y));
+  // Le pas se calcule sur l'ETENDUE (max - min), jamais sur le seul maximum :
+  // avec une valeur negative isolee, l'axe s'empilait en une bande illisible.
+  const etendueBrute = Math.max(1, maxBrut - minBrut);
+  const pas = (() => {
+    const brut = etendueBrute / 4;
+    const ordre = Math.pow(10, Math.floor(Math.log10(brut)));
+    return [1, 2, 2.5, 5, 10].map((m) => m * ordre).find((p) => p >= brut) ?? ordre * 10;
+  })();
+  const ticks: number[] = [];
+  for (let v = Math.floor(minBrut / pas) * pas; v <= Math.ceil(maxBrut / pas) * pas + 1e-9; v += pas)
+    ticks.push(Math.round(v * 1e6) / 1e6);
+  const max = ticks[ticks.length - 1], min = ticks[0];
   const marge = { g: margeGauche(ticks.map(formatAxe)), d: 10, h: 12, b: 24 };
   const w = Math.max(0, L - marge.g - marge.d);
   const h = hauteur - marge.h - marge.b;
-  const haut = ticks[ticks.length - 1] || max;
-  const bas = ticks[0];
+  const haut = max, bas = min;
   const etendue = haut - bas || 1;
   const py = (v: number) => h - ((v - bas) / etendue) * h;
   const zero = py(0);
