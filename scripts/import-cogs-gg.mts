@@ -1,6 +1,7 @@
 /**
  * Couts Garden & Gather depuis COGS_Garden_Gather_v4.csv.
- * standard = Total (shipping + picking 1er article), upsell = Total Upsell.
+ * ATTENTION : la colonne Total = prix produit + shipping + picking (le prix est deja
+ * dans product_costs). Port seul : standard = Shipping + Picking, upsell = Shipping Upsell + Picking Upsell.
  * UK -> GB. "A devis" = pas de tarif -> fallback US automatique (estime).
  *   npx tsx scripts/import-cogs-gg.mts
  */
@@ -36,7 +37,9 @@ const skusPour: Record<string, string[]> = {
 const produits = new Map<string, number>();
 const shipping: { sku: string; country: string; standard: number; upsell: number }[] = [];
 const ignores = new Set<string>();
-for (const [marche, nom, prix, , , , , total, totalUp] of csv) {
+for (const [marche, nom, prix, ship, shipUp, pick, pickUp] of csv) {
+  const total = Number.isNaN(Number(ship)) ? ship : String(Number(ship) + Number(pick));
+  const totalUp = Number.isNaN(Number(shipUp)) ? shipUp : String(Number(shipUp) + Number(pickUp));
   const skus = skusPour[nom];
   if (!skus) { ignores.add(nom); continue; }
   for (const sku of skus) produits.set(sku, Number(prix));
