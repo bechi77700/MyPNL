@@ -12,7 +12,7 @@ export const SHOPIFY_SCOPES = [
   "read_shopify_payments_disputes",
 ].join(",");
 
-export const SHOPIFY_API_VERSION = process.env.SHOPIFY_API_VERSION ?? "2025-10";
+export const SHOPIFY_API_VERSION = process.env.SHOPIFY_API_VERSION ?? "2026-07";
 
 /** Normalise une saisie utilisateur en domaine .myshopify.com, ou null si invalide. */
 export function normaliserDomaine(saisie: string): string | null {
