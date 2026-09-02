@@ -44,3 +44,6 @@ next-env.d.ts
 env.md
 .env
 .env.local
+
+# le workflow attend la permission 'workflow' sur le jeton GitHub
+.github/workflows/

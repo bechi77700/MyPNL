@@ -111,3 +111,40 @@ export async function supprimerCharge(slug: string, id: string): Promise<void> {
   revalidatePath(`/dashboard/${slug}/custom-costs`);
   retour("custom-costs", slug, "ok", "Charge supprimée.");
 }
+
+export async function enregistrerTaxes(slug: string, form: FormData): Promise<void> {
+  const { supabase, shopId } = await boutique(slug);
+  const mode = String(form.get("mode") ?? "none");
+
+  const { error: e1 } = await supabase
+    .from("shops").update({ tax_mode: mode }).eq("id", shopId);
+  if (e1) retour("taxes", slug, "erreur", e1.message);
+
+  // Un champ vide efface le taux : aucune taxe pour ce pays.
+  const aSupprimer: string[] = [];
+  const aEcrire: { shop_id: string; country: string; rate: number }[] = [];
+  for (const [cle, valeur] of form.entries()) {
+    if (!cle.startsWith("taux__")) continue;
+    const pays = cle.slice(6);
+    const v = String(valeur).trim().replace(",", ".");
+    const n = Number(v);
+    if (!v || !Number.isFinite(n) || n <= 0) aSupprimer.push(pays);
+    else aEcrire.push({ shop_id: shopId, country: pays, rate: n / 100 });
+  }
+
+  if (aSupprimer.length)
+    await supabase.from("shop_vat_rates").delete()
+      .eq("shop_id", shopId).in("country", aSupprimer);
+  if (aEcrire.length) {
+    const { error } = await supabase
+      .from("shop_vat_rates").upsert(aEcrire, { onConflict: "shop_id,country" });
+    if (error) retour("taxes", slug, "erreur", error.message);
+  }
+
+  await recalculer(supabase, shopId);
+  revalidatePath(`/dashboard/${slug}/taxes`);
+  retour("taxes", slug, "ok",
+    mode === "none"
+      ? "Aucune taxe déduite du chiffre d'affaires."
+      : `Taxes enregistrées (${aEcrire.length} pays).`);
+}

@@ -21,6 +21,7 @@ const SECTIONS: {
       { href: "/cost-of-goods", label: "Cost of Goods" },
       { href: "/shipping-costs", label: "Shipping Costs" },
       { href: "/custom-costs", label: "Custom Costs" },
+      { href: "/taxes", label: "Taxes" },
       { href: "/integrations", label: "Integrations" },
     ],
   },
