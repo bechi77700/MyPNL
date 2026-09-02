@@ -251,3 +251,9 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
   animation: progresse 1.6s cubic-bezier(.2,.7,.2,1) forwards;
 }
 .en-attente { opacity: .55; transition: opacity .15s ease; pointer-events: none; }
+
+/* iOS plein ecran (PWA) : ne rien mettre sous la barre d'etat (heure, batterie). */
+.safe-haut { padding-top: calc(env(safe-area-inset-top, 0px) + 10px); }
+@supports (padding: max(0px)) {
+  .safe-bas { padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px); }
+}

@@ -144,7 +144,7 @@ export function NavMobile({
 
   return (
     <>
-      <header className="verre sticky top-0 z-30 flex items-center justify-between gap-3 px-4 py-2.5 lg:hidden">
+      <header className="verre safe-haut sticky top-0 z-30 flex items-center justify-between gap-3 px-4 pb-2.5 lg:hidden">
         <Logo />
         <button
           onClick={() => setOuvert(true)}
@@ -157,7 +157,7 @@ export function NavMobile({
       </header>
 
       {ouvert && (
-        <div className="fixed inset-0 z-40 lg:hidden">
+        <div className="safe-haut fixed inset-0 z-40 lg:hidden">
           <button aria-label="Fermer le menu" onClick={() => setOuvert(false)}
             className="absolute inset-0 bg-black/70 backdrop-blur-[2px]" />
           <div className="apparait verre absolute inset-y-0 left-0 flex w-[280px] max-w-[85vw] flex-col overflow-y-auto px-4 py-4">
