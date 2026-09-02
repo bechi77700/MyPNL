@@ -96,6 +96,25 @@ export default async function SelectPage({
               <Champ name="domaine" required placeholder="ma-boutique.myshopify.com" className="flex-1" />
               <Bouton type="submit">Connecter</Bouton>
             </form>
+
+            <details className="mt-4 group">
+              <summary className="cursor-pointer text-[12px] text-faible transition-colors hover:text-doux">
+                Shopify refuse l&apos;installation ? Connecter avec un jeton Admin API
+              </summary>
+              <div className="mt-3 rounded-[12px] bg-carte-haut px-4 py-3.5">
+                <p className="text-[12.5px] leading-relaxed text-doux">
+                  Dans l&apos;admin de la boutique : <b className="text-texte">Paramètres → Applications et canaux de vente → Développer des applications → Créer une application</b>.
+                  Onglet Configuration → API Admin → coche les 8 permissions de lecture
+                  (<span className="chiffres">read_orders, read_all_orders, read_products, read_customers, read_reports, read_fulfillments, read_shopify_payments_payouts, read_shopify_payments_disputes</span>),
+                  enregistre, puis <b className="text-texte">Installer l&apos;application</b> et copie le jeton <span className="chiffres">shpat_…</span> (affiché une seule fois).
+                </p>
+                <form action="/api/connect/shopify/token" method="post" className="mt-3 flex flex-col gap-2">
+                  <Champ name="domaine" required placeholder="ma-boutique.myshopify.com" />
+                  <Champ name="token" required type="password" placeholder="shpat_…" autoComplete="off" />
+                  <Bouton type="submit" variante="discret">Connecter avec le jeton</Bouton>
+                </form>
+              </div>
+            </details>
           </Carte>
         )}
       </div>
