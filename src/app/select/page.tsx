@@ -4,7 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export default async function SelectPage() {
+export default async function SelectPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ erreur?: string }>;
+}) {
+  const { erreur } = await searchParams;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -24,10 +30,11 @@ export default async function SelectPage() {
     .eq("is_active", true)
     .order("name");
 
-  // Une seule boutique accessible : on y va directement.
-  if (boutiques?.length === 1) redirect(`/dashboard/${boutiques[0].slug}`);
-
   const estAdmin = profil?.role === "admin";
+
+  // Une seule boutique et rien a ajouter : on y va directement.
+  if (boutiques?.length === 1 && !estAdmin && !erreur)
+    redirect(`/dashboard/${boutiques[0].slug}`);
 
   return (
     <main className="min-h-screen bg-neutral-950 px-6 py-16">
@@ -53,6 +60,12 @@ export default async function SelectPage() {
           </form>
         </header>
 
+        {erreur && (
+          <p className="mb-6 rounded-lg border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+            {erreur}
+          </p>
+        )}
+
         {boutiques && boutiques.length > 0 ? (
           <ul className="space-y-2">
             {boutiques.map((b) => (
@@ -70,18 +83,45 @@ export default async function SelectPage() {
             ))}
           </ul>
         ) : (
-          <div className="rounded-xl border border-dashed border-neutral-800 px-6 py-12 text-center">
+          <div className="rounded-xl border border-dashed border-neutral-800 px-6 py-10 text-center">
             <p className="text-neutral-300">
               {estAdmin
                 ? "Aucune boutique connectée pour l'instant."
                 : "Aucune boutique ne t'a encore été attribuée."}
             </p>
-            <p className="mt-2 text-sm text-neutral-500">
-              {estAdmin
-                ? "La connexion Shopify arrive à l'étape suivante."
-                : "Demande à un administrateur de te donner accès."}
-            </p>
+            {!estAdmin && (
+              <p className="mt-2 text-sm text-neutral-500">
+                Demande à un administrateur de te donner accès.
+              </p>
+            )}
           </div>
+        )}
+
+        {estAdmin && (
+          <section className="mt-10 rounded-xl border border-neutral-800 bg-neutral-900/40 px-5 py-5">
+            <h2 className="text-sm font-medium text-neutral-200">
+              Ajouter une boutique
+            </h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              Entre son adresse Shopify. Tu seras redirigé vers Shopify pour
+              autoriser l&apos;accès en lecture.
+            </p>
+            <form
+              action="/api/connect/shopify/start"
+              method="post"
+              className="mt-4 flex flex-col gap-2 sm:flex-row"
+            >
+              <input
+                name="domaine"
+                required
+                placeholder="ma-boutique.myshopify.com"
+                className="flex-1 rounded-lg border border-neutral-800 bg-neutral-950 px-3.5 py-2.5 text-neutral-100 outline-none transition placeholder:text-neutral-600 focus:border-neutral-600"
+              />
+              <button className="rounded-lg bg-neutral-100 px-4 py-2.5 font-medium text-neutral-900 transition hover:bg-white">
+                Connecter
+              </button>
+            </form>
+          </section>
         )}
       </div>
     </main>
