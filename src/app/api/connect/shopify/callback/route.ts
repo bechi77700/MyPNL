@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { encrypt } from "@/lib/crypto";
+import { decrypt, encrypt } from "@/lib/crypto";
 import {
   echangerCodeContreToken,
   infosBoutique,
@@ -14,15 +14,27 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const params = url.searchParams;
 
-  const secret = process.env.SHOPIFY_API_SECRET;
-  if (!secret) return retour(request, "Cles Shopify absentes.");
+  const cookies = request.headers.get("cookie") ?? "";
 
-  if (!verifierHmac(params, secret))
+  // App par defaut (env) ou app d'une autre organisation (cookie chiffre par /start).
+  let app = {
+    clientId: process.env.SHOPIFY_API_KEY ?? "",
+    secret: process.env.SHOPIFY_API_SECRET ?? "",
+  };
+  const appCookie = cookies.match(/shopify_oauth_app=([^;]+)/)?.[1];
+  if (appCookie) {
+    try {
+      app = JSON.parse(decrypt(decodeURIComponent(appCookie)));
+    } catch {
+      return retour(request, "Identifiants d'app illisibles. Recommence.");
+    }
+  }
+  if (!app.secret) return retour(request, "Cles Shopify absentes.");
+
+  if (!verifierHmac(params, app.secret))
     return retour(request, "Signature Shopify invalide. Installation refusee.");
 
-  const attendu = request.headers
-    .get("cookie")
-    ?.match(/shopify_oauth_state=([^;]+)/)?.[1];
+  const attendu = cookies.match(/shopify_oauth_state=([^;]+)/)?.[1];
   if (!attendu || attendu !== params.get("state"))
     return retour(request, "Session d'installation expiree. Recommence.");
 
@@ -31,7 +43,7 @@ export async function GET(request: Request) {
   if (!domaine || !code) return retour(request, "Reponse Shopify incomplete.");
 
   try {
-    const token = await echangerCodeContreToken(domaine, code);
+    const token = await echangerCodeContreToken(domaine, code, app);
     const infos = await infosBoutique(domaine, token);
     const admin = createAdminClient();
 
@@ -88,6 +100,7 @@ export async function GET(request: Request) {
     ok.searchParams.set("connecte", "1");
     const reponse = NextResponse.redirect(ok, { status: 303 });
     reponse.cookies.delete("shopify_oauth_state");
+    reponse.cookies.delete("shopify_oauth_app");
     return reponse;
   } catch (e) {
     return retour(request, e instanceof Error ? e.message : "Echec de l'installation.");

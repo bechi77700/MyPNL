@@ -58,13 +58,17 @@ export function verifierHmac(params: URLSearchParams, secret: string): boolean {
 export async function echangerCodeContreToken(
   domaine: string,
   code: string,
+  app: { clientId: string; secret: string } = {
+    clientId: process.env.SHOPIFY_API_KEY ?? "",
+    secret: process.env.SHOPIFY_API_SECRET ?? "",
+  },
 ): Promise<string> {
   const r = await fetch(`https://${domaine}/admin/oauth/access_token`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      client_id: process.env.SHOPIFY_API_KEY,
-      client_secret: process.env.SHOPIFY_API_SECRET,
+      client_id: app.clientId,
+      client_secret: app.secret,
       code,
     }),
   });

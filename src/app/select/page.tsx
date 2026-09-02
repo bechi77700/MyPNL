@@ -91,10 +91,30 @@ export default async function SelectPage({
             <form
               action="/api/connect/shopify/start"
               method="post"
-              className="mt-4 flex flex-col gap-2 sm:flex-row"
+              className="mt-4 flex flex-col gap-2"
             >
-              <Champ name="domaine" required placeholder="ma-boutique.myshopify.com" className="flex-1" />
-              <Bouton type="submit">Connecter</Bouton>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Champ name="domaine" required placeholder="ma-boutique.myshopify.com" className="flex-1" />
+                <Bouton type="submit">Connecter</Bouton>
+              </div>
+              <details className="group">
+                <summary className="cursor-pointer text-[12px] text-faible transition-colors hover:text-doux">
+                  Boutique d&apos;une autre organisation Shopify ? Identifiants de son app
+                </summary>
+                <div className="mt-2 rounded-[12px] bg-carte-haut px-4 py-3.5">
+                  <p className="text-[12.5px] leading-relaxed text-doux">
+                    Une app Shopify ne s&apos;installe que sur les boutiques de son organisation.
+                    Pour une autre organisation : Dev Dashboard de cette organisation → créer une app « MyPNL »
+                    (App URL <span className="chiffres">https://mypnl-tau.vercel.app</span>, les 8 scopes de lecture,
+                    « Use legacy install flow » coché, redirection <span className="chiffres">https://mypnl-tau.vercel.app/api/connect/shopify/callback</span>,
+                    Release), puis copie le Client ID et le Secret depuis App settings.
+                  </p>
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <Champ name="client_id" placeholder="Client ID (32 caractères)" autoComplete="off" className="flex-1" />
+                    <Champ name="client_secret" type="password" placeholder="Secret" autoComplete="off" className="flex-1" />
+                  </div>
+                </div>
+              </details>
             </form>
 
             <details className="mt-4 group">
