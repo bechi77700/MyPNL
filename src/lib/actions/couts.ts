@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { recalculerBoutique } from "@/lib/recalcul";
 
 async function boutique(slug: string) {
   const supabase = await createClient();
@@ -16,12 +17,7 @@ async function boutique(slug: string) {
 async function recalculer(
   supabase: Awaited<ReturnType<typeof createClient>>, shopId: string,
 ) {
-  await supabase.rpc("recompute_orders_cogs", { p_shop: shopId });
-  await supabase.rpc("refresh_daily_facts", {
-    p_shop: shopId,
-    p_from: "2000-01-01",
-    p_to: new Date(Date.now() + 86400_000).toISOString().slice(0, 10),
-  });
+  await recalculerBoutique(supabase, shopId);
 }
 
 function retour(page: string, slug: string, cle: "ok" | "erreur", msg: string, extra?: Record<string, string>) {
