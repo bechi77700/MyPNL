@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export type BoutiqueMenu = { slug: string; name: string; currency: string; timezone: string };
 
@@ -18,6 +19,8 @@ export function SelecteurBoutique({
   courante, boutiques, estAdmin, mobile = false,
 }: { courante: BoutiqueMenu; boutiques: BoutiqueMenu[]; estAdmin: boolean; mobile?: boolean }) {
   const [ouvert, setOuvert] = useState(false);
+  const [monte, setMonte] = useState(false);
+  useEffect(() => setMonte(true), []);
   const ref = useRef<HTMLDivElement>(null);
   const chemin = usePathname();
   // /dashboard/<slug>/pnl?x -> /dashboard/<autre>/pnl
@@ -25,7 +28,11 @@ export function SelecteurBoutique({
 
   useEffect(() => {
     if (!ouvert) return;
-    const clic = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOuvert(false); };
+    const clic = (e: MouseEvent) => {
+      const cible = e.target as HTMLElement;
+      if (ref.current?.contains(cible) || cible.closest("[role=listbox]")) return;
+      setOuvert(false);
+    };
     const touche = (e: KeyboardEvent) => { if (e.key === "Escape") setOuvert(false); };
     document.addEventListener("mousedown", clic);
     document.addEventListener("keydown", touche);
@@ -48,9 +55,9 @@ export function SelecteurBoutique({
           <span className="truncate">{courante.name}</span>
           <svg viewBox="0 0 16 16" className={`size-3 shrink-0 text-faible transition-transform ${ouvert ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6l4 4 4-4" /></svg>
         </button>
-        {ouvert && (
+        {ouvert && monte && createPortal(
           <div className="fixed inset-0 z-50">
-            <button aria-label="Fermer" onClick={() => setOuvert(false)} className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+            <button aria-label="Fermer" onClick={() => setOuvert(false)} className="absolute inset-0 bg-black/60" />
             <div role="listbox" className="verre apparait safe-bas absolute inset-x-0 bottom-0 rounded-t-[18px] p-2 pt-3 shadow-[0_-16px_40px_rgb(0_0_0/0.5)]">
               <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-bord-fort" />
               <p className="surtitre px-3 pb-1.5 text-[10.5px]">Boutiques</p>
@@ -72,7 +79,8 @@ export function SelecteurBoutique({
               <Link href="/overview" onClick={() => setOuvert(false)} className="flex items-center gap-3 rounded-[12px] px-3 py-3 text-[13.5px] text-doux active:bg-carte-haut">Toutes les boutiques</Link>
               {estAdmin && <Link href="/select?tout=1" onClick={() => setOuvert(false)} className="flex items-center gap-3 rounded-[12px] px-3 py-3 text-[13.5px] text-doux active:bg-carte-haut">Ajouter une boutique</Link>}
             </div>
-          </div>
+          </div>,
+          document.body,
         )}
       </div>
     );

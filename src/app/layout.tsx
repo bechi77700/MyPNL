@@ -17,7 +17,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   applicationName: "MyPNL",
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "MyPNL" },
+  appleWebApp: { capable: true, statusBarStyle: "black", title: "MyPNL" },
   formatDetection: { telephone: false },
   title: "MyPNL",
   description: "Dashboard de rentabilité e-commerce multi-boutiques",
