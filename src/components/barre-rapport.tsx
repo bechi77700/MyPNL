@@ -76,6 +76,7 @@ export default function BarreRapport({
   return (
     <div className="verre sticky top-0 z-20 -mx-6 mb-6 flex flex-col gap-2 px-6 py-3 lg:top-0">
       {navigue && <div className="progression" aria-hidden />}
+      <div className="flex flex-wrap items-center gap-2">
       <div className="flex flex-wrap items-center gap-1.5">
         {PRESETS.map(([p, label]) => {
           const vise = cible === p;
@@ -107,33 +108,37 @@ export default function BarreRapport({
           Dates
         </button>
 
-        {!sansActualisation && <>
-        <span className="mx-1 hidden h-4 w-px bg-bord-fort sm:block" />
+      </div>
 
-        <button
-          type="button"
-          onClick={lancer}
-          disabled={enCours}
-          className={`${inactif} inline-flex items-center gap-1.5 disabled:cursor-wait disabled:opacity-70`}
-          title="Rapatrie les ventes Shopify et la dépense pub, puis recalcule"
-        >
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"
-            className={enCours ? "animate-spin" : ""}>
-            <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" /><path d="M13.5 2.5v3.2h-3.2" />
-          </svg>
-          {enCours ? "Actualisation…" : "Actualiser"}
-        </button>
-        {derniereSynchro && !enCours && !retour && (
-          <span className="text-[11px] text-faible">
-            synchro {formaterDelai(derniereSynchro)}
+      {!sansActualisation && (
+        <div className="ml-auto flex items-center gap-2.5 pl-2">
+          <span className="hidden text-right text-[11px] leading-tight text-faible sm:block">
+            {retour ? (
+              <span className={retour.ok ? "text-positif" : "text-negatif"}>{retour.message}</span>
+            ) : enCours ? (
+              "Shopify + pub, puis recalcul"
+            ) : derniereSynchro ? (
+              <>synchro {formaterDelai(derniereSynchro)}</>
+            ) : null}
           </span>
-        )}
-        {retour && (
-          <span className={`text-[11.5px] ${retour.ok ? "text-accent" : "text-negatif"}`}>
-            {retour.message}
-          </span>
-        )}
-        </>}
+          <button
+            type="button"
+            onClick={lancer}
+            disabled={enCours}
+            className="btn-actualiser inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold disabled:cursor-wait"
+            title="Rapatrie les ventes Shopify et la dépense pub, puis recalcule"
+            aria-live="polite"
+          >
+            <span className={`relative grid size-4 place-items-center ${enCours ? "" : ""}`}>
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                className={enCours ? "animate-spin" : ""}>
+                <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" /><path d="M13.5 2.5v3.2h-3.2" />
+              </svg>
+            </span>
+            {enCours ? "Actualisation…" : "Actualiser"}
+          </button>
+        </div>
+      )}
       </div>
 
       {ouvert && (
