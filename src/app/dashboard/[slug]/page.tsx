@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { chargerSkus, sansCout } from "@/lib/skus";
 import {
   formaterMontant, formaterNombre, formaterPourcent,
   periodePrecedente, resoudrePeriode,
@@ -55,16 +54,22 @@ export default async function Dashboard({
   const periode = resoudrePeriode(boutique!.timezone, sp);
   const avant = periodePrecedente(periode.du, periode.au);
 
-  const [{ data: actuel }, { data: precedent }, { data: serie }, { data: serieAvant }, skus, { data: renouv }, { data: conn }] =
-    await Promise.all([
-      supabase.rpc("pnl_summary", { p_shop: shopId, p_from: periode.du, p_to: periode.au }),
-      supabase.rpc("pnl_summary", { p_shop: shopId, p_from: avant.du, p_to: avant.au }),
-      supabase.rpc("pnl_series", { p_shop: shopId, p_from: periode.du, p_to: periode.au, p_grain: "day" }),
-      supabase.rpc("pnl_series", { p_shop: shopId, p_from: avant.du, p_to: avant.au, p_grain: "day" }),
-      chargerSkus(shopId, false),
-      supabase.rpc("connecteurs_a_renouveler", { p_shop: shopId, p_seuil_jours: 10 }),
-      supabase.from("connectors").select("last_sync_at").eq("shop_id", shopId).eq("platform", "shopify").maybeSingle(),
-    ]);
+  // Un seul aller-retour vers la base : toutes les donnees du tableau de bord.
+  const { data: paquet } = await supabase.rpc("dashboard_data", {
+    p_shop: shopId, p_from: periode.du, p_to: periode.au,
+    p_prev_from: avant.du, p_prev_to: avant.au,
+  });
+  const d = (paquet ?? {}) as {
+    actuel?: Partial<Pnl>; precedent?: Partial<Pnl>;
+    serie?: Serie[]; serie_avant?: Serie[]; sans_cout?: number;
+    renouvellements?: Renouvellement[]; derniere_synchro?: string | null;
+  };
+  const actuel = d.actuel ? [d.actuel] : [];
+  const precedent = d.precedent ? [d.precedent] : [];
+  const serie = d.serie ?? [];
+  const serieAvant = d.serie_avant ?? [];
+  const renouv = d.renouvellements ?? [];
+  const conn = { last_sync_at: d.derniere_synchro ?? null };
 
   const a = (actuel?.[0] ?? {}) as Partial<Pnl>;
   const b = (precedent?.[0] ?? {}) as Partial<Pnl>;
@@ -72,7 +77,7 @@ export default async function Dashboard({
   const jours = (serie ?? []) as Serie[];
   const joursAvant = (serieAvant ?? []) as Serie[];
 
-  const nbSansCout = sansCout(skus.actifs).length;
+  const nbSansCout = Number(d.sans_cout ?? 0);
   const m = (v: number) => formaterMontant(v, devise, true);
   const evo = (x: number, y: number) => (y ? ((x - y) / Math.abs(y)) * 100 : null);
 
