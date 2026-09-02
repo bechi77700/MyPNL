@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formaterMontant, formaterPourcent, aujourdhui } from "@/lib/periode";
 import { Carte, EnTetePage, Pastille } from "@/components/ui";
@@ -32,10 +33,12 @@ export default async function PlanningPage({
   const [an, mo] = auj.split("-").map(Number);
   const debut = new Date(Date.UTC(an, mo - 7, 1)).toISOString().slice(0, 10);
 
-  const { data } = await supabase.rpc("pnl_series", {
-    p_shop: boutique!.id, p_from: debut, p_to: auj, p_grain: "month",
-  });
+  const [{ data }, { count: nbCharges }] = await Promise.all([
+    supabase.rpc("pnl_series", { p_shop: boutique!.id, p_from: debut, p_to: auj, p_grain: "month" }),
+    supabase.from("costs").select("id", { count: "exact", head: true }).eq("shop_id", boutique!.id),
+  ]);
   const mois = (data ?? []) as Mois[];
+  const aucuneCharge = (nbCharges ?? 0) === 0;
 
   const m = (v: number) => formaterMontant(v, devise, true);
   const n = (v: unknown) => Number(v ?? 0);
@@ -111,24 +114,57 @@ export default async function PlanningPage({
       </Carte>
 
       <Carte className="mt-4 px-6 py-6">
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h2 className="text-[13px] font-medium text-texte">Santé des charges de structure</h2>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-[13px] font-medium text-texte">Poids des charges fixes dans le CA</h2>
+            <p className="mt-1 text-[12px] text-faible">
+              Salaires + partenaires + outils + Shopify, divisés par le CA hors taxes.
+              Combien de chaque euro vendu part dans la structure.
+            </p>
+          </div>
           <span className="flex items-center gap-2.5">
-            <span className="chiffres text-lg text-texte">{formaterPourcent(pctOpex)}</span>
-            <Pastille ton={ton}>{etat}</Pastille>
+            <span className={`chiffres text-[22px] font-semibold ${aucuneCharge ? "text-faible" : "text-texte"}`}>
+              {formaterPourcent(pctOpex)}
+            </span>
+            {!aucuneCharge && <Pastille ton={ton}>{etat}</Pastille>}
           </span>
         </div>
-        <div className="relative mt-4 h-2 overflow-hidden rounded-full bg-carte-haut">
-          <div className="absolute inset-y-0 left-0 bg-accent/30" style={{ left: "5%", width: "8%" }} />
-          <div
-            className="absolute inset-y-0 w-1 rounded-full bg-texte"
-            style={{ left: `${Math.min(99, pctOpex * 4)}%` }}
-          />
-        </div>
-        <div className="mt-1.5 flex justify-between text-[10px] text-faible">
-          <span>0 %</span><span>5 %</span><span>13 %</span><span>16 %</span><span>25 %</span>
-        </div>
-        <p className="mt-3 max-w-2xl text-[13px] text-doux">{explication}</p>
+
+        {aucuneCharge ? (
+          <div className="mt-4 rounded-[9px] border border-alerte/25 bg-alerte/[0.06] px-4 py-3">
+            <p className="text-[13px] text-alerte">Aucune charge saisie — cet indicateur n&apos;a pas encore de sens.</p>
+            <p className="mt-1 text-[12.5px] text-doux">
+              Renseigne tes abonnements, salaires et rémunération dans{" "}
+              <Link href={`/dashboard/${slug}/custom-costs`} className="text-accent underline underline-offset-2">Custom Costs</Link>
+              {" "}et il te dira si ta structure est saine, tendue ou trop lourde.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Jauge a zones nommees : on lit la zone, pas un chiffre isole. */}
+            <div className="relative mt-5 flex h-2.5 w-full gap-[2px] overflow-hidden rounded-full">
+              {[
+                ["0", "5", "bg-alerte/40", "trop bas"],
+                ["5", "13", "bg-accent/50", "sain"],
+                ["13", "16", "bg-alerte/40", "tendu"],
+                ["16", "25", "bg-negatif/45", "trop lourd"],
+              ].map(([a, b, cls]) => (
+                <div key={a} className={`${cls} rounded-full`} style={{ width: `${((Number(b) - Number(a)) / 25) * 100}%` }} />
+              ))}
+              <div
+                className="absolute top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-texte shadow-[0_0_8px_rgb(255_255_255/0.6)]"
+                style={{ left: `calc(${Math.min(99, (pctOpex / 25) * 100)}% - 1px)` }}
+              />
+            </div>
+            <div className="mt-1.5 grid grid-cols-4 text-[10.5px] text-faible">
+              <span>trop bas · 0–5 %</span>
+              <span>sain · 5–13 %</span>
+              <span>tendu · 13–16 %</span>
+              <span className="text-right">trop lourd · &gt; 16 %</span>
+            </div>
+            <p className="mt-3 max-w-2xl text-[13px] text-doux">{explication}</p>
+          </>
+        )}
       </Carte>
 
       <Carte className="mt-4 overflow-hidden">
