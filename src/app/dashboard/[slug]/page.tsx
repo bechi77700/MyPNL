@@ -150,9 +150,29 @@ export default async function Dashboard({
                 contre {m(n(b.ebitda))} la période précédente
               </span>
             </div>
-            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1.5 text-[12px] text-faible">
-              <span>Marge nette <b className="chiffres font-medium text-doux">{caHt > 0 ? formaterPourcent((ebitda / caHt) * 100) : "—"}</b></span>
-              <span>Marge brute <b className="chiffres font-medium text-doux">{caHt > 0 ? formaterPourcent((n(a.gross_margin) / caHt) * 100) : "—"}</b></span>
+            {/* La marge nette est le 2e chiffre regarde apres le profit : elle
+                a sa propre taille et sa propre couleur, pas une ligne de bas de carte. */}
+            <div className="mt-5 grid grid-cols-2 gap-4 border-t border-bord pt-4">
+              <div>
+                <p className="surtitre">Marge nette</p>
+                <p className={`heros mt-1.5 text-[26px] font-semibold ${
+                  caHt <= 0 ? "text-faible" : ebitda < 0 ? "text-negatif" : "text-accent"
+                }`}>
+                  {caHt > 0 ? formaterPourcent((ebitda / caHt) * 100) : "—"}
+                </p>
+                <p className="mt-1 text-[11px] text-faible">
+                  {n(b.revenue_ht) > 0
+                    ? `${formaterPourcent((n(b.ebitda) / n(b.revenue_ht)) * 100)} période précédente`
+                    : "du CA hors taxes"}
+                </p>
+              </div>
+              <div>
+                <p className="surtitre">Marge brute</p>
+                <p className="chiffres mt-1.5 text-[18px] font-medium text-doux">
+                  {caHt > 0 ? formaterPourcent((n(a.gross_margin) / caHt) * 100) : "—"}
+                </p>
+                <p className="mt-1 text-[11px] text-faible">avant publicité</p>
+              </div>
             </div>
           </div>
 
