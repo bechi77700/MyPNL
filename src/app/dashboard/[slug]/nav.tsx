@@ -112,7 +112,7 @@ function LiensBas({ compact }: { compact?: boolean }) {
   return (
     <div className={`space-y-px ${compact ? "" : "mt-auto pt-6"}`}>
       <Link href="/overview" className={cls}><Icone nom="overview" /> Vue consolidée</Link>
-      <Link href="/select" className={cls}><Icone nom="switch" /> Changer de boutique</Link>
+      <Link href="/select?tout=1" className={cls}><Icone nom="switch" /> Changer de boutique</Link>
       <form action="/auth/signout" method="post">
         <button className={`${cls} w-full`}><Icone nom="logout" /> Se déconnecter</button>
       </form>

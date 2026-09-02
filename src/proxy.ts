@@ -42,11 +42,25 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && path === "/login") {
+  // Boutique par defaut : la derniere ouverte (cookie), sinon Looma.
+  // /select reste accessible avec ?tout=1 (lien "Changer de boutique").
+  const BOUTIQUE_DEFAUT = "looma";
+  const derniere = request.cookies.get("mypnl_boutique")?.value || BOUTIQUE_DEFAUT;
+  const versBoutique = () => {
     const url = request.nextUrl.clone();
-    url.pathname = "/select";
+    url.pathname = `/dashboard/${derniere}`;
     url.search = "";
     return NextResponse.redirect(url);
+  };
+
+  if (user && path === "/login") return versBoutique();
+  if (user && (path === "/" || path === "/select") && request.nextUrl.search === "") return versBoutique();
+
+  const m = path.match(/^\/dashboard\/([^/]+)/);
+  if (user && m && m[1] !== derniere) {
+    response.cookies.set("mypnl_boutique", m[1], {
+      path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax", secure: true,
+    });
   }
 
   return response;

@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "MyPNL",
     short_name: "MyPNL",
     description: "Profit net, P&L et commandes de tes boutiques Shopify.",
-    start_url: "/select",
+    start_url: "/",
     display: "standalone",
     orientation: "portrait",
     background_color: "#0a0b0d",

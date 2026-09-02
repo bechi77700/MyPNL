@@ -92,7 +92,7 @@ export function SelecteurBoutique({
             Toutes les boutiques
           </Link>
           {estAdmin && (
-            <Link href="/select" onClick={() => setOuvert(false)} className="flex items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-[12.5px] text-doux transition-colors hover:bg-carte-haut hover:text-texte">
+            <Link href="/select?tout=1" onClick={() => setOuvert(false)} className="flex items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-[12.5px] text-doux transition-colors hover:bg-carte-haut hover:text-texte">
               <svg viewBox="0 0 16 16" className="size-4 text-faible" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M8 3v10M3 8h10" /></svg>
               Ajouter une boutique
             </Link>
