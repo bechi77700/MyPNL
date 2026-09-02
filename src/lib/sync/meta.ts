@@ -3,7 +3,7 @@ import { decrypt, encrypt } from "@/lib/crypto";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
-export const META_API_VERSION = process.env.META_API_VERSION ?? "v21.0";
+export const META_API_VERSION = process.env.META_API_VERSION ?? "v26.0";
 
 
 // ─────────────────────────── OAuth Meta ───────────────────────────
