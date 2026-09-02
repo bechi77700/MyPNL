@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formaterMontant, formaterNombre, formaterPourcent, resoudrePeriode } from "@/lib/periode";
-import SelecteurPeriode from "@/components/periode";
+import BarreRapport from "@/components/barre-rapport";
 import { Carte, Champ, Pastille } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 type Cmd = {
   external_id: string; order_number: string; order_day: string;
@@ -36,7 +37,7 @@ export default async function OrdersPage({
   const devise = boutique!.currency as string;
   const periode = resoudrePeriode(boutique!.timezone, sp);
 
-  const [{ data: lignes }, { data: totaux }] = await Promise.all([
+  const [{ data: lignes }, { data: totaux }, { data: conn }] = await Promise.all([
     supabase.rpc("orders_report", {
       p_shop: shopId, p_from: periode.du, p_to: periode.au,
       p_limite: PAR_PAGE, p_decalage: (page - 1) * PAR_PAGE,
@@ -45,6 +46,7 @@ export default async function OrdersPage({
     supabase.rpc("orders_report_totaux", {
       p_shop: shopId, p_from: periode.du, p_to: periode.au,
     }),
+    supabase.from("connectors").select("last_sync_at").eq("shop_id", shopId).eq("platform", "shopify").maybeSingle(),
   ]);
 
   const cmds = (lignes ?? []) as Cmd[];
@@ -73,8 +75,11 @@ export default async function OrdersPage({
         </p>
       </div>
 
-      <div className="mb-5 flex flex-wrap items-center gap-3">
-        <SelecteurPeriode actif={periode.preset} libelle={periode.libelle} />
+      <BarreRapport
+        slug={slug} actif={periode.preset} du={periode.du} au={periode.au}
+        derniereSynchro={(conn?.last_sync_at as string | null) ?? null}
+      />
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <form method="get" className="ml-auto flex gap-2">
           {sp.p && <input type="hidden" name="p" value={sp.p} />}
           <Champ name="q" defaultValue={recherche} placeholder="N° de commande…" className="w-44 text-[13px]" />

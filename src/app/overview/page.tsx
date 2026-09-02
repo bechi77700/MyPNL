@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Logo } from "@/components/logo";
 import { Bouton, Carte, Pastille } from "@/components/ui";
-import SelecteurPeriode from "@/components/periode";
+import BarreRapport from "@/components/barre-rapport";
 import {
   formaterMontant, formaterNombre, formaterPourcent,
   periodePrecedente, resoudrePeriode,
@@ -101,9 +101,10 @@ export default async function OverviewPage({
           </div>
         </header>
 
-        <div className="mb-6">
-          <SelecteurPeriode actif={periode.preset} libelle={periode.libelle} />
-        </div>
+        <BarreRapport
+          slug="" actif={periode.preset} du={periode.du} au={periode.au}
+          derniereSynchro={null} sansActualisation
+        />
 
         {devises.length > 1 && (
           <Carte className="mb-4 border-alerte/30 bg-alerte/5 px-5 py-4">

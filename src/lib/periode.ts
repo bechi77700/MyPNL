@@ -64,8 +64,9 @@ export function periodePrecedente(du: string, au: string) {
 }
 
 export function formaterMontant(v: number, devise: string, compact = false) {
+  // "46 837 $" plutot que "46 837 $US" : le suffixe de zone alourdit chaque chiffre.
   return new Intl.NumberFormat("fr-FR", {
-    style: "currency", currency: devise,
+    style: "currency", currency: devise, currencyDisplay: "narrowSymbol",
     maximumFractionDigits: compact && Math.abs(v) >= 1000 ? 0 : 2,
     minimumFractionDigits: compact && Math.abs(v) >= 1000 ? 0 : 2,
     notation: compact && Math.abs(v) >= 100000 ? "compact" : "standard",

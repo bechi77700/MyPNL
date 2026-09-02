@@ -38,6 +38,11 @@ export async function chargerSkus(shopId: string, tout: boolean) {
   };
 }
 
+/** Produits actifs, expedies, sans cout : les guides numeriques a 0 sont normaux. */
+export function sansCout(skus: Sku[]) {
+  return skus.filter((s) => s.cost === 0 && !s.exclude_from_shipping);
+}
+
 export function nomSku(s: Sku) {
   return s.product_title ?? s.title ?? s.sku;
 }

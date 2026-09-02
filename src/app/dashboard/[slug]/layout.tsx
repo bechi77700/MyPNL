@@ -28,7 +28,7 @@ export default async function DashboardLayout({
     <div className="min-h-screen bg-fond lg:flex lg:gap-0 lg:p-2">
       <NavMobile slug={slug} boutique={boutique.name} />
       <aside className="hidden w-[212px] shrink-0 flex-col px-2.5 py-3.5 lg:flex">
-        <div className="px-2">
+        <div className="px-2.5 pt-1">
           <Logo />
         </div>
         <div className="mt-4 rounded-[9px] border border-bord bg-carte px-3 py-2.5">

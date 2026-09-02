@@ -43,6 +43,7 @@ export const SERIES = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181"];
 const SURFACE = "#1a1a1a";
 const GRILLE = "#242424";
 const ACCENT = "#2dca02";
+const NEGATIF = "#ff5f56";
 
 function useLargeur() {
   const ref = useRef<HTMLDivElement>(null);
@@ -70,9 +71,9 @@ type Point = { x: string; y: number };
 
 /** Courbe + aire. Une seule serie : pas de legende, le titre suffit. */
 export function Courbe({
-  points, hauteur = 200, unite = "monnaie", devise = "USD", grain = "day",
+  points, comparaison, hauteur = 200, unite = "monnaie", devise = "USD", grain = "day",
 }: {
-  points: Point[]; hauteur?: number;
+  points: Point[]; comparaison?: Point[]; hauteur?: number;
   unite?: Unite; devise?: string; grain?: "day" | "month";
 }) {
   const format = faireFormat(unite, devise);
@@ -80,7 +81,7 @@ export function Courbe({
   const libelleX = grain === "month" ? moisCourt : jourCourt;
   const [ref, L] = useLargeur();
   const [survol, setSurvol] = useState<number | null>(null);
-  const max = Math.max(1, ...points.map((p) => p.y));
+  const max = Math.max(1, ...points.map((p) => p.y), ...(comparaison ?? []).map((p) => p.y));
   const ticks = ticksY(max);
   const marge = { g: margeGauche(ticks.map(formatAxe)), d: 10, h: 12, b: 24 };
   const w = Math.max(0, L - marge.g - marge.d);
@@ -90,6 +91,9 @@ export function Courbe({
   const py = (v: number) => h - (v / hautMax) * h;
 
   const d = points.map((p, i) => `${i ? "L" : "M"}${px(i)},${py(p.y)}`).join(" ");
+  // La periode precedente est alignee par rang : meme longueur, meme axe.
+  const dComp = (comparaison ?? []).slice(0, points.length)
+    .map((p, i) => `${i ? "L" : "M"}${px(i)},${py(p.y)}`).join(" ");
   const aire = points.length
     ? `${d} L${px(points.length - 1)},${h} L${px(0)},${h} Z`
     : "";
@@ -119,6 +123,10 @@ export function Courbe({
                 </text>
               </g>
             ))}
+            {dComp && (
+              <path d={dComp} fill="none" stroke="#5a5a5a" strokeWidth={1.5}
+                strokeDasharray="3 4" strokeLinejoin="round" strokeLinecap="round" />
+            )}
             <path d={aire} fill={ACCENT} opacity={0.1} />
             <path d={d} fill="none" stroke={ACCENT} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
             {survol !== null && points[survol] && (
@@ -148,7 +156,14 @@ export function Courbe({
           x={marge.g + px(survol)} largeur={L}
           titre={libelleX(points[survol].x)}
           valeur={format(points[survol].y)}
+          secondaire={comparaison?.[survol] ? `préc. ${format(comparaison[survol].y)}` : undefined}
         />
+      )}
+      {dComp && (
+        <p className="mt-2 flex items-center gap-3 text-[10.5px] text-faible">
+          <span className="inline-flex items-center gap-1.5"><span className="inline-block h-[2px] w-4 rounded bg-accent" /> période</span>
+          <span className="inline-flex items-center gap-1.5"><span className="inline-block h-0 w-4 border-t border-dashed border-[#5a5a5a]" /> période précédente</span>
+        </p>
       )}
     </div>
   );
@@ -167,11 +182,21 @@ export function Colonnes({
   const [ref, L] = useLargeur();
   const [survol, setSurvol] = useState<number | null>(null);
   const max = Math.max(1, ...points.map((p) => p.y));
-  const ticks = ticksY(max, 3);
+  const min = Math.min(0, ...points.map((p) => p.y));
+  const ticksPos = ticksY(max, 3);
+  // Sous zero, memes pas que dessus : l'axe reste lisible.
+  const pas = ticksPos.length > 1 ? ticksPos[1] - ticksPos[0] : 1;
+  const ticksNeg: number[] = [];
+  for (let v = -pas; v >= min * 1.001; v -= pas) ticksNeg.push(v);
+  const ticks = [...ticksNeg.reverse(), ...ticksPos];
   const marge = { g: margeGauche(ticks.map(formatAxe)), d: 10, h: 12, b: 24 };
   const w = Math.max(0, L - marge.g - marge.d);
   const h = hauteur - marge.h - marge.b;
-  const hautMax = ticks[ticks.length - 1] || max;
+  const haut = ticks[ticks.length - 1] || max;
+  const bas = ticks[0];
+  const etendue = haut - bas || 1;
+  const py = (v: number) => h - ((v - bas) / etendue) * h;
+  const zero = py(0);
   const bande = points.length ? w / points.length : 0;
   const epaisseur = Math.max(1, Math.min(24, bande - 2));
 
@@ -182,9 +207,10 @@ export function Colonnes({
           <g transform={`translate(${marge.g},${marge.h})`}>
             {ticks.map((t) => (
               <g key={t}>
-                <line x1={0} x2={w} y1={h - (t / hautMax) * h} y2={h - (t / hautMax) * h} stroke={GRILLE} strokeWidth={1} />
+                <line x1={0} x2={w} y1={py(t)} y2={py(t)}
+                  stroke={t === 0 ? "#3a3a3a" : GRILLE} strokeWidth={1} />
                 <text
-                  x={-8} y={h - (t / hautMax) * h} dy="0.32em" textAnchor="end"
+                  x={-8} y={py(t)} dy="0.32em" textAnchor="end"
                   className="fill-[#6e6e6e] text-[10px] tabular-nums"
                 >
                   {formatAxe(t)}
@@ -192,14 +218,18 @@ export function Colonnes({
               </g>
             ))}
             {points.map((p, i) => {
-              const hb = (p.y / hautMax) * h;
+              const yv = py(p.y);
+              const negatif = p.y < 0;
+              const top = negatif ? zero : yv;
+              const hb = Math.abs(zero - yv);
               return (
                 <rect
                   key={p.x}
                   x={i * bande + (bande - epaisseur) / 2}
-                  y={h - hb} width={epaisseur} height={Math.max(0, hb)}
+                  y={top} width={epaisseur} height={Math.max(0, hb)}
                   rx={Math.min(4, epaisseur / 2)}
-                  fill={ACCENT} opacity={survol === null || survol === i ? 1 : 0.45}
+                  fill={negatif ? NEGATIF : ACCENT}
+                  opacity={survol === null || survol === i ? 1 : 0.45}
                   onMouseEnter={() => setSurvol(i)}
                 />
               );
@@ -272,8 +302,8 @@ export function BarreRepartition({
 }
 
 function Infobulle({
-  x, largeur, titre, valeur,
-}: { x: number; largeur: number; titre: string; valeur: string }) {
+  x, largeur, titre, valeur, secondaire,
+}: { x: number; largeur: number; titre: string; valeur: string; secondaire?: string }) {
   const aDroite = x > largeur / 2;
   return (
     <div
@@ -282,6 +312,7 @@ function Infobulle({
     >
       <p className="text-[10.5px] text-faible">{titre}</p>
       <p className="chiffres text-[13px] font-medium text-texte">{valeur}</p>
+      {secondaire && <p className="chiffres text-[10.5px] text-faible">{secondaire}</p>}
     </div>
   );
 }

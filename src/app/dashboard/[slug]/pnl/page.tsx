@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formaterMontant, formaterPourcent, resoudrePeriode } from "@/lib/periode";
-import SelecteurPeriode from "@/components/periode";
+import BarreRapport from "@/components/barre-rapport";
 import { Carte } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 type Ligne = {
   bucket: string; orders_count: number;
@@ -57,9 +58,12 @@ export default async function PnlPage({
   const devise = boutique!.currency as string;
   const periode = resoudrePeriode(boutique!.timezone, sp);
 
-  const { data } = await supabase.rpc("pnl_series", {
-    p_shop: boutique!.id, p_from: periode.du, p_to: periode.au, p_grain: grain,
-  });
+  const [{ data }, { data: conn }] = await Promise.all([
+    supabase.rpc("pnl_series", {
+      p_shop: boutique!.id, p_from: periode.du, p_to: periode.au, p_grain: grain,
+    }),
+    supabase.from("connectors").select("last_sync_at").eq("shop_id", boutique!.id).eq("platform", "shopify").maybeSingle(),
+  ]);
   const lignes = (data ?? []) as Ligne[];
 
   const total = POSTES.reduce((acc, p) => {
@@ -94,9 +98,12 @@ export default async function PnlPage({
         <p className="mt-1.5 text-[13px] text-doux">{boutique!.name} · {periode.libelle}</p>
       </div>
 
-      <div className="mb-5 flex flex-wrap items-center gap-3">
-        <SelecteurPeriode actif={periode.preset} libelle={periode.libelle} />
-        <span className="text-bord">|</span>
+      <BarreRapport
+        slug={slug} actif={periode.preset} du={periode.du} au={periode.au}
+        derniereSynchro={(conn?.last_sync_at as string | null) ?? null}
+      />
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <span className="surtitre">Granularité</span>
         <div className="flex gap-1.5">
           {[["month", "Par mois"], ["day", "Par jour"]].map(([g, label]) => (
             <Link
@@ -128,12 +135,12 @@ export default async function PnlPage({
                     Poste
                   </th>
                   {lignes.map((l) => (
-                    <th key={l.bucket} className="px-4 py-2.5 text-right font-medium">
+                    <th key={l.bucket} className="px-3 py-2.5 text-right font-medium">
                       {enTete(l.bucket)}
                     </th>
                   ))}
-                  <th className="px-4 py-2.5 text-right font-medium text-doux">Total</th>
-                  <th className="px-4 py-2.5 text-right font-medium">% CA HT</th>
+                  <th className="sticky right-[84px] z-10 w-[112px] min-w-[112px] border-l border-bord bg-carte-haut px-3 py-2.5 text-right font-medium text-doux shadow-[-6px_0_8px_-6px_rgba(0,0,0,0.6)]">Total</th>
+                  <th className="sticky right-0 z-10 w-[84px] min-w-[84px] bg-carte-haut px-3 py-2.5 text-right font-medium">% CA HT</th>
                 </tr>
               </thead>
               <tbody>
@@ -155,25 +162,31 @@ export default async function PnlPage({
                       </td>
                       {lignes.map((l) => {
                         const v = Number(l[p.cle] ?? 0);
+                        // Un zero n'apporte rien : un tiret discret, les vraies
+                        // valeurs ressortent.
+                        const nul = Math.abs(v) < 0.005;
                         return (
                           <td
                             key={l.bucket}
-                            className={`chiffres px-4 py-2.5 text-right ${
-                              p.cout ? "text-faible" : p.total ? "text-texte" : "text-doux"
+                            className={`chiffres px-3 py-[9px] text-right ${
+                              nul ? "text-faible/40"
+                              : p.cout ? "text-faible" : p.total ? "text-texte" : "text-doux"
                             } ${p.total && v < 0 ? "text-negatif" : ""}`}
                           >
-                            {m(v, p.cout)}
+                            {nul ? "–" : m(v, p.cout)}
                           </td>
                         );
                       })}
                       <td
-                        className={`chiffres px-4 py-[9px] text-right font-medium ${
-                          p.total && t < 0 ? "text-negatif" : "text-texte"
-                        }`}
+                        className={`chiffres sticky right-[84px] z-10 w-[112px] min-w-[112px] border-l border-bord px-3 py-[9px] text-right font-medium shadow-[-6px_0_8px_-6px_rgba(0,0,0,0.6)] ${
+                          p.total ? "bg-carte-haut" : "bg-carte"
+                        } ${p.total && t < 0 ? "text-negatif" : "text-texte"}`}
                       >
                         {m(t, p.cout)}
                       </td>
-                      <td className="chiffres px-4 py-[9px] text-right text-faible">
+                      <td className={`chiffres sticky right-0 z-10 w-[84px] min-w-[84px] whitespace-nowrap px-3 py-[9px] text-right text-[12px] text-faible ${
+                        p.total ? "bg-carte-haut" : "bg-carte"
+                      }`}>
                         {caHtTotal ? formaterPourcent((t / caHtTotal) * 100) : "—"}
                       </td>
                     </tr>

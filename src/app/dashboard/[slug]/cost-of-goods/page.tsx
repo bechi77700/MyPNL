@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { chargerSkus, nomSku, type Sku } from "@/lib/skus";
+import { chargerSkus, nomSku, sansCout, type Sku } from "@/lib/skus";
 import { enregistrerProduits } from "@/lib/actions/couts";
 import { Bouton, Carte, EnTetePage, Message, Pastille } from "@/components/ui";
 
@@ -21,7 +21,7 @@ export default async function ProduitsPage({
     .from("shops").select("id, currency").eq("slug", slug).maybeSingle();
   const { visibles, actifs, inactifsVendus } = await chargerSkus(boutique!.id, tout);
   const devise = boutique!.currency as string;
-  const manquants = visibles.filter((s) => s.cost === 0).length;
+  const manquants = sansCout(visibles).length;
 
   return (
     <div className="px-7 py-8">

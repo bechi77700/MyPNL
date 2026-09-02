@@ -1,17 +1,19 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { chargerSkus } from "@/lib/skus";
+import { chargerSkus, sansCout } from "@/lib/skus";
 import {
   formaterMontant, formaterNombre, formaterPourcent,
   periodePrecedente, resoudrePeriode,
 } from "@/lib/periode";
-import SelecteurPeriode from "@/components/periode";
+import BarreRapport from "@/components/barre-rapport";
 import { BarreRepartition, Colonnes, Courbe } from "@/components/charts";
 import { Carte, Delta, Section } from "@/components/ui";
 import { Metrique, MetriqueLigne } from "@/components/metrique";
 import AlerteConnecteur, { type Renouvellement } from "@/components/alerte-connecteur";
 
 export const dynamic = "force-dynamic";
+// Le bouton Actualiser synchronise Shopify et Meta : jusqu'a 60 s.
+export const maxDuration = 60;
 
 type Pnl = {
   orders_count: number; units: number; new_customers: number;
@@ -24,7 +26,7 @@ type Pnl = {
   sessions: number; add_to_carts: number;
 };
 
-type Serie = { bucket: string; orders_count: number; gross_sales: number };
+type Serie = { bucket: string; orders_count: number; gross_sales: number; ebitda: number };
 
 export default async function Dashboard({
   params, searchParams,
@@ -44,26 +46,31 @@ export default async function Dashboard({
   const periode = resoudrePeriode(boutique!.timezone, sp);
   const avant = periodePrecedente(periode.du, periode.au);
 
-  const [{ data: actuel }, { data: precedent }, { data: serie }, skus, { data: renouv }] =
+  const [{ data: actuel }, { data: precedent }, { data: serie }, { data: serieAvant }, skus, { data: renouv }, { data: conn }] =
     await Promise.all([
       supabase.rpc("pnl_summary", { p_shop: shopId, p_from: periode.du, p_to: periode.au }),
       supabase.rpc("pnl_summary", { p_shop: shopId, p_from: avant.du, p_to: avant.au }),
       supabase.rpc("pnl_series", { p_shop: shopId, p_from: periode.du, p_to: periode.au, p_grain: "day" }),
+      supabase.rpc("pnl_series", { p_shop: shopId, p_from: avant.du, p_to: avant.au, p_grain: "day" }),
       chargerSkus(shopId, false),
       supabase.rpc("connecteurs_a_renouveler", { p_shop: shopId, p_seuil_jours: 10 }),
+      supabase.from("connectors").select("last_sync_at").eq("shop_id", shopId).eq("platform", "shopify").maybeSingle(),
     ]);
 
   const a = (actuel?.[0] ?? {}) as Partial<Pnl>;
   const b = (precedent?.[0] ?? {}) as Partial<Pnl>;
   const n = (v: unknown) => Number(v ?? 0);
   const jours = (serie ?? []) as Serie[];
+  const joursAvant = (serieAvant ?? []) as Serie[];
 
-  const sansCout = skus.actifs.filter((s) => s.cost === 0).length;
+  const nbSansCout = sansCout(skus.actifs).length;
   const m = (v: number) => formaterMontant(v, devise, true);
   const evo = (x: number, y: number) => (y ? ((x - y) / Math.abs(y)) * 100 : null);
 
   const ebitda = n(a.ebitda);
   const caHt = n(a.revenue_ht);
+  const roas = n(a.ad_spend) ? n(a.gross_sales) / n(a.ad_spend) : null;
+  const seuil = caHt > 0 && n(a.gross_margin) > 0 ? 1 / (n(a.gross_margin) / caHt) : null;
   const coutsTotaux =
     n(a.cogs) + n(a.transaction_fees) + n(a.ad_spend) + n(a.opex) + n(a.owner_salary);
 
@@ -77,24 +84,25 @@ export default async function Dashboard({
 
   return (
     <div className="px-6 py-6">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-[19px] font-semibold tracking-[-0.02em] text-texte">Dashboard</h1>
-          <p className="mt-0.5 text-[12.5px] text-faible">
-            {boutique!.name} · {periode.libelle}
-          </p>
-        </div>
-        <SelecteurPeriode actif={periode.preset} libelle={periode.libelle} />
+      <div className="mb-3">
+        <h1 className="text-[19px] font-semibold tracking-[-0.02em] text-texte">Dashboard</h1>
+        <p className="mt-0.5 text-[12.5px] text-faible">
+          {boutique!.name} · {periode.libelle}
+        </p>
       </div>
+      <BarreRapport
+        slug={slug} actif={periode.preset} du={periode.du} au={periode.au}
+        derniereSynchro={(conn?.last_sync_at as string | null) ?? null}
+      />
 
       <AlerteConnecteur renouvellements={(renouv ?? []) as Renouvellement[]} slug={slug} />
 
-      {(sansCout > 0 || n(a.ad_spend) === 0) && (
+      {(nbSansCout > 0 || n(a.ad_spend) === 0) && (
         <div className="mb-4 grid gap-2 sm:grid-cols-2">
-          {sansCout > 0 && (
+          {nbSansCout > 0 && (
             <Carte ton="alerte" className="px-4 py-2.5">
               <p className="text-[12.5px] text-alerte">
-                {sansCout} produit{sansCout > 1 ? "s" : ""} actif{sansCout > 1 ? "s" : ""} sans coût —{" "}
+                {nbSansCout} produit{nbSansCout > 1 ? "s" : ""} actif{nbSansCout > 1 ? "s" : ""} sans coût —{" "}
                 <Link href={`/dashboard/${slug}/cost-of-goods`} className="underline underline-offset-2">
                   marges sous-estimées
                 </Link>
@@ -159,11 +167,22 @@ export default async function Dashboard({
       </Section>
 
       {/* ── Courbes ── */}
+      <Section titre="Profit net par jour" className="mt-3"
+        action={<span className="text-[11px] text-faible">après COGS, frais, pub et charges</span>}>
+        <div className="px-5 py-5">
+          <Colonnes
+            points={jours.map((j) => ({ x: j.bucket, y: Number(j.ebitda) }))}
+            unite="monnaie" devise={devise} hauteur={190}
+          />
+        </div>
+      </Section>
+
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         <Section titre="Chiffre d'affaires par jour">
           <div className="px-5 py-5">
             <Courbe
               points={jours.map((j) => ({ x: j.bucket, y: Number(j.gross_sales) }))}
+              comparaison={joursAvant.map((j) => ({ x: j.bucket, y: Number(j.gross_sales) }))}
               unite="monnaie" devise={devise}
             />
           </div>
@@ -195,11 +214,16 @@ export default async function Dashboard({
             valeur={formaterNombre(n(a.new_customers))}
             delta={evo(n(a.new_customers), n(b.new_customers))} />
           <Metrique icone="articles" teinte="orange" label="Articles vendus" valeur={formaterNombre(n(a.units))} />
-          <Metrique icone="cible" teinte="bleu" label="ROAS blended"
-            valeur={n(a.ad_spend) ? (n(a.gross_sales) / n(a.ad_spend)).toFixed(2) : "—"} />
+          <Metrique icone="cible"
+            teinte={roas !== null && seuil !== null ? (roas >= seuil ? "accent" : "rose") : "neutre"}
+            label="ROAS blended"
+            valeur={roas !== null ? roas.toFixed(2) : "—"}
+            note={roas !== null && seuil !== null
+              ? (roas >= seuil ? "au-dessus du seuil" : "sous le seuil : tu perds")
+              : undefined} />
           <Metrique icone="frais" teinte="neutre" label="ROAS seuil de rentabilité"
-            valeur={caHt > 0 && n(a.gross_margin) > 0 ? (1 / (n(a.gross_margin) / caHt)).toFixed(2) : "—"}
-            note="en dessous, tu perds" />
+            valeur={seuil !== null ? seuil.toFixed(2) : "—"}
+            note="le minimum pour ne pas perdre" />
         </div>
       </div>
     </div>
