@@ -12,6 +12,27 @@ export const SHOPIFY_SCOPES = [
   "read_shopify_payments_disputes",
 ].join(",");
 
+export type AppShopify = { nom: string; clientId: string; secret: string };
+
+/**
+ * Une app Shopify n'est installable que sur les boutiques de SON organisation.
+ * L'app par defaut (env SHOPIFY_API_KEY) + une par organisation supplementaire
+ * dans SHOPIFY_APPS (JSON). L'index dans cette liste sert de choix au formulaire.
+ */
+export function appsShopify(): AppShopify[] {
+  const liste: AppShopify[] = [];
+  if (process.env.SHOPIFY_API_KEY && process.env.SHOPIFY_API_SECRET)
+    liste.push({ nom: "Looma", clientId: process.env.SHOPIFY_API_KEY, secret: process.env.SHOPIFY_API_SECRET });
+  try {
+    const autres = JSON.parse(process.env.SHOPIFY_APPS ?? "[]") as Partial<AppShopify>[];
+    for (const a of autres)
+      if (a.nom && a.clientId && a.secret) liste.push({ nom: a.nom, clientId: a.clientId, secret: a.secret });
+  } catch {
+    /* JSON invalide : on ignore, la saisie manuelle reste possible */
+  }
+  return liste;
+}
+
 export const SHOPIFY_API_VERSION = process.env.SHOPIFY_API_VERSION ?? "2026-07";
 
 /** Normalise une saisie utilisateur en domaine .myshopify.com, ou null si invalide. */

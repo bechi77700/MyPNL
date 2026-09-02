@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { normaliserDomaine, urlAutorisation } from "@/lib/shopify";
+import { appsShopify, normaliserDomaine, urlAutorisation } from "@/lib/shopify";
 import { encrypt } from "@/lib/crypto";
 
 /** Demarre l'installation : seul un admin connecte peut brancher une boutique. */
@@ -35,10 +35,15 @@ export async function POST(request: Request) {
   if (clientIdSaisi && !/^[a-f0-9]{32}$/i.test(clientIdSaisi))
     return erreur(request, "Le Client ID doit faire 32 caracteres (copie-le depuis App settings).");
 
-  const clientId = clientIdSaisi || process.env.SHOPIFY_API_KEY;
-  const secret = secretSaisi || process.env.SHOPIFY_API_SECRET;
+  const apps = appsShopify();
+  const indexOrg = Number(form.get("org") ?? 0);
+  const appChoisie = apps[indexOrg] ?? apps[0];
+  const clientId = clientIdSaisi || appChoisie?.clientId;
+  const secret = secretSaisi || appChoisie?.secret;
   if (!clientId || !secret)
     return erreur(request, "Les cles Shopify ne sont pas encore configurees.");
+  // Le callback a besoin des identifiants s'ils ne sont pas ceux de l'app par defaut.
+  const horsDefaut = Boolean(clientIdSaisi) || indexOrg > 0;
 
   const state = crypto.randomBytes(24).toString("hex");
   const origine = new URL(request.url).origin;
@@ -64,8 +69,8 @@ export async function POST(request: Request) {
   // Identifiants de l'app pour le callback, chiffres, uniquement si differents de l'env.
   reponse.cookies.set(
     "shopify_oauth_app",
-    clientIdSaisi ? encrypt(JSON.stringify({ clientId, secret })) : "",
-    { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: clientIdSaisi ? 600 : 0 },
+    horsDefaut ? encrypt(JSON.stringify({ clientId, secret })) : "",
+    { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: horsDefaut ? 600 : 0 },
   );
   return reponse;
 }

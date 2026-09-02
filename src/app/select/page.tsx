@@ -1,14 +1,16 @@
+import { appsShopify } from "@/lib/shopify";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Logo } from "@/components/logo";
-import { Bouton, Carte, Champ, Message, Pastille } from "@/components/ui";
+import { Bouton, Carte, Champ, Selecteur, Message, Pastille } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
 export default async function SelectPage({
   searchParams,
 }: { searchParams: Promise<{ erreur?: string }> }) {
+  const apps = appsShopify();
   const { erreur } = await searchParams;
 
   const supabase = await createClient();
@@ -95,6 +97,13 @@ export default async function SelectPage({
             >
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Champ name="domaine" required placeholder="ma-boutique.myshopify.com" className="flex-1" />
+                {apps.length > 1 && (
+                  <Selecteur name="org" aria-label="Organisation Shopify" className="sm:w-56">
+                    {apps.map((a, i) => (
+                      <option key={a.nom} value={i}>Organisation : {a.nom}</option>
+                    ))}
+                  </Selecteur>
+                )}
                 <Bouton type="submit">Connecter</Bouton>
               </div>
               <details className="group">
