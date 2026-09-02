@@ -96,8 +96,8 @@ type CommandeShopify = {
   total_tax_set?: { shop_money?: { amount?: string } };
   total_shipping_price_set?: { shop_money?: { amount?: string } };
   line_items?: LigneCommande[];
-  shipping_address?: { country_code?: string } | null;
-  billing_address?: { country_code?: string } | null;
+  shipping_address?: { country_code?: string; zip?: string } | null;
+  billing_address?: { country_code?: string; zip?: string } | null;
   customer?: { id?: number } | null;
 };
 
@@ -183,6 +183,7 @@ export async function syncCommandes(
         order_number: o.name,
         order_date: o.created_at,
         country: o.shipping_address?.country_code ?? o.billing_address?.country_code ?? null,
+        postal_code: o.shipping_address?.zip ?? o.billing_address?.zip ?? null,
         items,
         revenue: brut,
         refunded: 0,

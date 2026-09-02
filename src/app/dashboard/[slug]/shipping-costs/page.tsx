@@ -21,10 +21,12 @@ export default async function ShippingPage({
   const shopId = boutique!.id as string;
   const devise = boutique!.currency as string;
 
-  const [{ data: pays }, skus] = await Promise.all([
+  const [{ data: pays }, skus, { data: replis }] = await Promise.all([
     supabase.rpc("shop_countries", { p_shop: shopId }),
     chargerSkus(shopId, false),
+    supabase.rpc("shipping_fallback_usage", { p_shop: shopId }),
   ]);
+  const surRepli = (replis ?? []) as { zone: string; estimees: number }[];
 
   const listePays = (pays ?? []) as { country: string; orders_count: number }[];
   const paysActif = choisi ?? listePays[0]?.country ?? "US";
@@ -58,8 +60,23 @@ export default async function ShippingPage({
       />
       <Message ok={ok} erreur={erreur} />
 
+      {surRepli.length > 0 && (
+        <Carte className="mb-5 border-alerte/30 bg-alerte/5 px-5 py-4">
+          <p className="text-sm font-medium text-alerte">
+            Tarif de repli appliqué sur {surRepli.reduce((a, r) => a + Number(r.estimees), 0)} commandes
+          </p>
+          <p className="mt-1 text-sm text-doux">
+            Quand un produit n&apos;a pas de tarif pour un marché, MyPNL applique
+            automatiquement celui des <b className="text-texte">États-Unis</b> plutôt que
+            de laisser le COGS à zéro. Concerné :{" "}
+            {surRepli.map((r) => `${r.zone} (${r.estimees})`).join(", ")}. Renseigne
+            les vrais tarifs ci-dessous pour supprimer l&apos;estimation.
+          </p>
+        </Carte>
+      )}
+
       <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-faible">
-        Marchés livrés — le chiffre est le nombre de commandes reçues
+        Marchés et zones tarifaires — le chiffre est le nombre de commandes reçues
       </p>
       <div className="mb-4 flex flex-wrap gap-1.5">
         {listePays.map((p) => (
