@@ -67,7 +67,7 @@ export default function LoginForm({
           value={motDePasse}
           onChange={(e) => setMotDePasse(e.target.value)}
           className="w-full rounded-lg border border-neutral-800 bg-neutral-900 px-3.5 py-2.5 text-neutral-100 outline-none transition placeholder:text-neutral-600 focus:border-neutral-600"
-          placeholder={premierCompte ? "8 caracteres minimum" : "••••••••"}
+          placeholder={premierCompte ? "8 caractères minimum" : "••••••••"}
         />
       </div>
 
