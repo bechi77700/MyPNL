@@ -17,7 +17,7 @@ const { data: couts } = await admin.from("product_costs").select("sku").eq("shop
 const connus = new Set((couts ?? []).map((c) => c.sku));
 const { data: skus } = await admin.from("shop_skus").select("sku, title").eq("shop_id", id);
 const titre = Object.fromEntries((skus ?? []).map((s) => [s.sku, s.title]));
-const { data: cmds } = await admin.from("orders").select("items, country, shipping_estimated, product_cost, shipping_cost, revenue").eq("shop_id", id).gte("order_day", "2026-08-04").lte("order_day", "2026-09-02");
+const { data: cmds } = await admin.from("orders").select("items, country, shipping_estimated, product_cost, shipping_cost, revenue").eq("shop_id", id).gte("order_day", "2026-08-04").lte("order_day", "2026-09-02").range(0, 4999);
 const inconnus: Record<string, number> = {}; const pays: Record<string, [number, number]> = {};
 let ca = 0, prod = 0, ship = 0;
 for (const o of cmds ?? []) {
