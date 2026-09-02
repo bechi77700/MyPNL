@@ -67,8 +67,8 @@ export default async function OrdersPage({
   return (
     <div className="px-7 py-8">
       <div className="mb-6">
-        <h1 className="text-[22px] font-semibold tracking-tight text-texte">Orders Report</h1>
-        <p className="mt-1.5 text-sm text-doux">
+        <h1 className="text-[19px] font-semibold tracking-[-0.02em] text-texte">Orders Report</h1>
+        <p className="mt-1.5 text-[13px] text-doux">
           {boutique!.name} · {periode.libelle} · profit réel de chaque commande
         </p>
       </div>
@@ -77,7 +77,7 @@ export default async function OrdersPage({
         <SelecteurPeriode actif={periode.preset} libelle={periode.libelle} />
         <form method="get" className="ml-auto flex gap-2">
           {sp.p && <input type="hidden" name="p" value={sp.p} />}
-          <Champ name="q" defaultValue={recherche} placeholder="N° de commande…" className="w-44 text-sm" />
+          <Champ name="q" defaultValue={recherche} placeholder="N° de commande…" className="w-44 text-[13px]" />
         </form>
       </div>
 
@@ -91,7 +91,7 @@ export default async function OrdersPage({
 
       {(n(t.perdantes) > 0 || n(t.sans_cogs) > 0 || n(t.shipping_estime) > 0) && (
         <Carte className="mb-4 border-alerte/30 bg-alerte/5 px-5 py-3.5">
-          <p className="text-sm text-alerte">
+          <p className="text-[13px] text-alerte">
             {[
               n(t.perdantes) > 0 && `${n(t.perdantes)} commande(s) à perte`,
               n(t.sans_cogs) > 0 && `${n(t.sans_cogs)} sans COGS`,
@@ -108,33 +108,33 @@ export default async function OrdersPage({
       ) : (
         <Carte className="overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-max text-sm">
-              <thead className="bg-carte-haut text-[11px] uppercase tracking-wider text-faible">
+            <table className="w-full min-w-max text-[13px]">
+              <thead className="bg-carte-haut surtitre">
                 <tr>
-                  <th className="px-5 py-3 text-left font-medium">Commande</th>
-                  <th className="px-3 py-3 text-left font-medium">Date</th>
-                  <th className="px-3 py-3 text-left font-medium">Marché</th>
-                  <th className="px-3 py-3 text-right font-medium">Art.</th>
-                  <th className="px-3 py-3 text-right font-medium">CA net</th>
-                  <th className="px-3 py-3 text-right font-medium">Produit</th>
-                  <th className="px-3 py-3 text-right font-medium">Livraison</th>
-                  <th className="px-3 py-3 text-right font-medium">Frais</th>
-                  <th className="px-3 py-3 text-right font-medium">Profit</th>
-                  <th className="px-5 py-3 text-right font-medium">Marge</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Commande</th>
+                  <th className="px-3 py-[9px] text-left font-medium">Date</th>
+                  <th className="px-3 py-[9px] text-left font-medium">Marché</th>
+                  <th className="px-3 py-[9px] text-right font-medium">Art.</th>
+                  <th className="px-3 py-[9px] text-right font-medium">CA net</th>
+                  <th className="px-3 py-[9px] text-right font-medium">Produit</th>
+                  <th className="px-3 py-[9px] text-right font-medium">Livraison</th>
+                  <th className="px-3 py-[9px] text-right font-medium">Frais</th>
+                  <th className="px-3 py-[9px] text-right font-medium">Profit</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Marge</th>
                 </tr>
               </thead>
               <tbody>
                 {cmds.map((c) => {
                   const perte = Number(c.profit) < 0;
                   return (
-                    <tr key={c.external_id} className="border-t border-bord transition hover:bg-carte-haut/50">
-                      <td className="px-5 py-2.5">
+                    <tr key={c.external_id} className="border-t border-bord transition-colors hover:bg-carte-haut/50">
+                      <td className="px-4 py-[9px]">
                         <span className="text-texte">{c.order_number}</span>
                         {c.is_new_customer && (
                           <span className="ml-2 text-[10px] uppercase tracking-wide text-faible">new</span>
                         )}
                       </td>
-                      <td className="chiffres px-3 py-2.5 text-doux">
+                      <td className="chiffres px-3 py-[9px] text-doux">
                         {new Date(c.order_day + "T12:00:00Z").toLocaleDateString("fr-FR", {
                           day: "2-digit", month: "2-digit",
                         })}
@@ -148,17 +148,17 @@ export default async function OrdersPage({
                           <span className="ml-1.5"><Pastille ton="ambre">sans COGS</Pastille></span>
                         )}
                       </td>
-                      <td className="chiffres px-3 py-2.5 text-right text-doux">{c.units}</td>
-                      <td className="chiffres px-3 py-2.5 text-right text-texte">
+                      <td className="chiffres px-3 py-[9px] text-right text-doux">{c.units}</td>
+                      <td className="chiffres px-3 py-[9px] text-right text-texte">
                         {m(Number(c.revenue) - Number(c.refunded))}
                       </td>
-                      <td className="chiffres px-3 py-2.5 text-right text-faible">{m(Number(c.product_cost))}</td>
-                      <td className="chiffres px-3 py-2.5 text-right text-faible">{m(Number(c.shipping_cost))}</td>
-                      <td className="chiffres px-3 py-2.5 text-right text-faible">{m(Number(c.transaction_fee))}</td>
-                      <td className={`chiffres px-3 py-2.5 text-right font-medium ${perte ? "text-negatif" : "text-texte"}`}>
+                      <td className="chiffres px-3 py-[9px] text-right text-faible">{m(Number(c.product_cost))}</td>
+                      <td className="chiffres px-3 py-[9px] text-right text-faible">{m(Number(c.shipping_cost))}</td>
+                      <td className="chiffres px-3 py-[9px] text-right text-faible">{m(Number(c.transaction_fee))}</td>
+                      <td className={`chiffres px-3 py-[9px] text-right font-medium ${perte ? "text-negatif" : "text-texte"}`}>
                         {m(Number(c.profit))}
                       </td>
-                      <td className={`chiffres px-5 py-2.5 text-right ${perte ? "text-negatif" : "text-doux"}`}>
+                      <td className={`chiffres px-4 py-[9px] text-right ${perte ? "text-negatif" : "text-doux"}`}>
                         {c.marge_pct != null ? formaterPourcent(Number(c.marge_pct), 0) : "—"}
                       </td>
                     </tr>
@@ -171,18 +171,18 @@ export default async function OrdersPage({
       )}
 
       {pages > 1 && (
-        <div className="mt-4 flex items-center justify-between text-sm">
+        <div className="mt-4 flex items-center justify-between text-[13px]">
           <span className="text-faible">
             {formaterNombre(total)} commandes · page {page} sur {pages}
           </span>
           <div className="flex gap-2">
             {page > 1 && (
-              <Link href={lien(page - 1)} className="rounded-lg border border-bord px-3 py-1.5 text-doux transition hover:border-bord-fort hover:text-texte">
+              <Link href={lien(page - 1)} className="rounded-[7px] border border-bord px-3 py-1.5 text-doux transition-colors hover:border-bord-fort hover:text-texte">
                 Précédent
               </Link>
             )}
             {page < pages && (
-              <Link href={lien(page + 1)} className="rounded-lg border border-bord px-3 py-1.5 text-doux transition hover:border-bord-fort hover:text-texte">
+              <Link href={lien(page + 1)} className="rounded-[7px] border border-bord px-3 py-1.5 text-doux transition-colors hover:border-bord-fort hover:text-texte">
                 Suivant
               </Link>
             )}
@@ -190,7 +190,7 @@ export default async function OrdersPage({
         </div>
       )}
 
-      <p className="mt-4 max-w-3xl text-xs leading-relaxed text-faible">
+      <p className="mt-4 max-w-3xl text-[11.5px] leading-relaxed text-faible">
         Le profit affiché est <b className="text-doux">avant publicité</b> : la dépense
         pub n&apos;est pas attribuable à une commande précise. Les frais de transaction
         sont les frais réels prélevés par Shopify sur cette commande.
@@ -202,7 +202,7 @@ export default async function OrdersPage({
 function Resume({ label, valeur, accent }: { label: string; valeur: string; accent?: boolean }) {
   return (
     <Carte className="px-4 py-3.5">
-      <p className="text-xs text-faible">{label}</p>
+      <p className="text-[11.5px] text-faible">{label}</p>
       <p className={`chiffres mt-1 text-lg ${accent ? "text-accent" : "text-texte"}`}>{valeur}</p>
     </Carte>
   );

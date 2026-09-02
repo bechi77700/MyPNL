@@ -90,8 +90,8 @@ export default async function PnlPage({
   return (
     <div className="px-7 py-8">
       <div className="mb-6">
-        <h1 className="text-[22px] font-semibold tracking-tight text-texte">P&amp;L Report</h1>
-        <p className="mt-1.5 text-sm text-doux">{boutique!.name} · {periode.libelle}</p>
+        <h1 className="text-[19px] font-semibold tracking-[-0.02em] text-texte">P&amp;L Report</h1>
+        <p className="mt-1.5 text-[13px] text-doux">{boutique!.name} · {periode.libelle}</p>
       </div>
 
       <div className="mb-5 flex flex-wrap items-center gap-3">
@@ -121,19 +121,19 @@ export default async function PnlPage({
       ) : (
         <Carte className="overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-max text-sm">
+            <table className="w-full min-w-max text-[13px]">
               <thead>
-                <tr className="bg-carte-haut text-[11px] uppercase tracking-wider text-faible">
-                  <th className="sticky left-0 z-10 bg-carte-haut px-5 py-3 text-left font-medium">
+                <tr className="bg-carte-haut surtitre">
+                  <th className="sticky left-0 z-10 bg-carte-haut px-4 py-2.5 text-left font-medium">
                     Poste
                   </th>
                   {lignes.map((l) => (
-                    <th key={l.bucket} className="px-4 py-3 text-right font-medium">
+                    <th key={l.bucket} className="px-4 py-2.5 text-right font-medium">
                       {enTete(l.bucket)}
                     </th>
                   ))}
-                  <th className="px-5 py-3 text-right font-medium text-doux">Total</th>
-                  <th className="px-4 py-3 text-right font-medium">% CA HT</th>
+                  <th className="px-4 py-2.5 text-right font-medium text-doux">Total</th>
+                  <th className="px-4 py-2.5 text-right font-medium">% CA HT</th>
                 </tr>
               </thead>
               <tbody>
@@ -147,8 +147,8 @@ export default async function PnlPage({
                       }`}
                     >
                       <td
-                        className={`sticky left-0 z-10 px-5 py-2.5 ${
-                          p.total ? "bg-[#1b1b20] font-medium text-texte" : "bg-carte text-doux"
+                        className={`sticky left-0 z-10 px-4 py-[9px] ${
+                          p.total ? "bg-carte-haut font-medium text-texte" : "bg-carte text-doux"
                         } ${p.indent ? "pl-9" : ""}`}
                       >
                         {p.label}
@@ -167,13 +167,13 @@ export default async function PnlPage({
                         );
                       })}
                       <td
-                        className={`chiffres px-5 py-2.5 text-right font-medium ${
+                        className={`chiffres px-4 py-[9px] text-right font-medium ${
                           p.total && t < 0 ? "text-negatif" : "text-texte"
                         }`}
                       >
                         {m(t, p.cout)}
                       </td>
-                      <td className="chiffres px-4 py-2.5 text-right text-faible">
+                      <td className="chiffres px-4 py-[9px] text-right text-faible">
                         {caHtTotal ? formaterPourcent((t / caHtTotal) * 100) : "—"}
                       </td>
                     </tr>
@@ -185,7 +185,7 @@ export default async function PnlPage({
         </Carte>
       )}
 
-      <p className="mt-4 max-w-3xl text-xs leading-relaxed text-faible">
+      <p className="mt-4 max-w-3xl text-[11.5px] leading-relaxed text-faible">
         Les montants entre parenthèses sont des coûts. Les pourcentages sont
         rapportés au <b className="text-doux">CA hors taxes</b>. Les charges
         mensuelles sont réparties au prorata des jours de chaque colonne — la somme

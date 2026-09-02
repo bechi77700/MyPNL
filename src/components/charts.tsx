@@ -12,16 +12,37 @@ function faireFormat(unite: Unite, devise: string) {
     unite === "monnaie" ? formaterMontant(v, devise, true) : formaterNombre(Math.round(v));
 }
 
+/**
+ * Libelles d'axe : toujours compacts (2,4 k / 1,2 M). Le format monetaire
+ * complet deborde de la marge et se fait couper.
+ */
+function faireFormatAxe(unite: Unite, devise: string) {
+  const compact = new Intl.NumberFormat("fr-FR", {
+    notation: "compact", maximumFractionDigits: 1,
+  });
+  const symbole = unite === "monnaie"
+    ? (0).toLocaleString("fr-FR", { style: "currency", currency: devise })
+        .replace(/[\d\s,.\u00a0]/g, "")
+    : "";
+  return (v: number) => (v === 0 ? "0" : compact.format(v) + (symbole ? " " + symbole : ""));
+}
+
+/** Marge gauche calculee sur le libelle le plus large, pour ne rien couper. */
+function margeGauche(labels: string[]) {
+  const large = labels.reduce((a, l) => Math.max(a, l.length), 1);
+  return Math.min(72, Math.max(30, large * 6.4 + 12));
+}
+
 const jourCourt = (x: string) =>
   new Date(x + "T12:00:00Z").toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 const moisCourt = (x: string) =>
   new Date(x + "T12:00:00Z").toLocaleDateString("fr-FR", { month: "short", year: "2-digit" });
 
-/** Palette categorielle validee pour notre fond sombre (#17171b). */
+/** Palette categorielle validee pour notre fond sombre (#1a1a1a). */
 export const SERIES = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181"];
-const SURFACE = "#17171b";
-const GRILLE = "#26262c";
-const ACCENT = "#34d399";
+const SURFACE = "#1a1a1a";
+const GRILLE = "#242424";
+const ACCENT = "#2dca02";
 
 function useLargeur() {
   const ref = useRef<HTMLDivElement>(null);
@@ -55,14 +76,15 @@ export function Courbe({
   unite?: Unite; devise?: string; grain?: "day" | "month";
 }) {
   const format = faireFormat(unite, devise);
+  const formatAxe = faireFormatAxe(unite, devise);
   const libelleX = grain === "month" ? moisCourt : jourCourt;
   const [ref, L] = useLargeur();
   const [survol, setSurvol] = useState<number | null>(null);
-  const marge = { g: 52, d: 10, h: 12, b: 24 };
-  const w = Math.max(0, L - marge.g - marge.d);
-  const h = hauteur - marge.h - marge.b;
   const max = Math.max(1, ...points.map((p) => p.y));
   const ticks = ticksY(max);
+  const marge = { g: margeGauche(ticks.map(formatAxe)), d: 10, h: 12, b: 24 };
+  const w = Math.max(0, L - marge.g - marge.d);
+  const h = hauteur - marge.h - marge.b;
   const hautMax = ticks[ticks.length - 1] || max;
   const px = (i: number) => (points.length < 2 ? w / 2 : (i / (points.length - 1)) * w);
   const py = (v: number) => h - (v / hautMax) * h;
@@ -91,9 +113,9 @@ export function Courbe({
                 <line x1={0} x2={w} y1={py(t)} y2={py(t)} stroke={GRILLE} strokeWidth={1} />
                 <text
                   x={-8} y={py(t)} dy="0.32em" textAnchor="end"
-                  className="fill-[#6b6b76] text-[10px] tabular-nums"
+                  className="fill-[#6e6e6e] text-[10px] tabular-nums"
                 >
-                  {format(t)}
+                  {formatAxe(t)}
                 </text>
               </g>
             ))}
@@ -110,10 +132,10 @@ export function Courbe({
             )}
             {points.length > 1 && (
               <>
-                <text x={0} y={h + 16} className="fill-[#6b6b76] text-[10px]">
+                <text x={0} y={h + 16} className="fill-[#6e6e6e] text-[10px]">
                   {libelleX(points[0].x)}
                 </text>
-                <text x={w} y={h + 16} textAnchor="end" className="fill-[#6b6b76] text-[10px]">
+                <text x={w} y={h + 16} textAnchor="end" className="fill-[#6e6e6e] text-[10px]">
                   {libelleX(points[points.length - 1].x)}
                 </text>
               </>
@@ -140,14 +162,15 @@ export function Colonnes({
   unite?: Unite; devise?: string; grain?: "day" | "month";
 }) {
   const format = faireFormat(unite, devise);
+  const formatAxe = faireFormatAxe(unite, devise);
   const libelleX = grain === "month" ? moisCourt : jourCourt;
   const [ref, L] = useLargeur();
   const [survol, setSurvol] = useState<number | null>(null);
-  const marge = { g: 44, d: 10, h: 12, b: 24 };
-  const w = Math.max(0, L - marge.g - marge.d);
-  const h = hauteur - marge.h - marge.b;
   const max = Math.max(1, ...points.map((p) => p.y));
   const ticks = ticksY(max, 3);
+  const marge = { g: margeGauche(ticks.map(formatAxe)), d: 10, h: 12, b: 24 };
+  const w = Math.max(0, L - marge.g - marge.d);
+  const h = hauteur - marge.h - marge.b;
   const hautMax = ticks[ticks.length - 1] || max;
   const bande = points.length ? w / points.length : 0;
   const epaisseur = Math.max(1, Math.min(24, bande - 2));
@@ -162,9 +185,9 @@ export function Colonnes({
                 <line x1={0} x2={w} y1={h - (t / hautMax) * h} y2={h - (t / hautMax) * h} stroke={GRILLE} strokeWidth={1} />
                 <text
                   x={-8} y={h - (t / hautMax) * h} dy="0.32em" textAnchor="end"
-                  className="fill-[#6b6b76] text-[10px] tabular-nums"
+                  className="fill-[#6e6e6e] text-[10px] tabular-nums"
                 >
-                  {format(t)}
+                  {formatAxe(t)}
                 </text>
               </g>
             ))}
@@ -183,8 +206,8 @@ export function Colonnes({
             })}
             {points.length > 1 && (
               <>
-                <text x={0} y={h + 16} className="fill-[#6b6b76] text-[10px]">{libelleX(points[0].x)}</text>
-                <text x={w} y={h + 16} textAnchor="end" className="fill-[#6b6b76] text-[10px]">
+                <text x={0} y={h + 16} className="fill-[#6e6e6e] text-[10px]">{libelleX(points[0].x)}</text>
+                <text x={w} y={h + 16} textAnchor="end" className="fill-[#6e6e6e] text-[10px]">
                   {libelleX(points[points.length - 1].x)}
                 </text>
               </>
@@ -217,7 +240,7 @@ export function BarreRepartition({
 
   return (
     <div>
-      <div className="flex h-3 w-full gap-[2px] overflow-hidden rounded-full">
+      <div className="flex h-2.5 w-full gap-[2px] overflow-hidden rounded-full">
         {visibles.map((p, i) => (
           <div
             key={p.label}
@@ -236,9 +259,9 @@ export function BarreRepartition({
               className="size-2.5 shrink-0 rounded-full"
               style={{ backgroundColor: SERIES[i % SERIES.length] }}
             />
-            <span className="min-w-0 flex-1 truncate text-sm text-doux">{p.label}</span>
-            <span className="chiffres text-sm text-texte">{format(p.valeur)}</span>
-            <span className="chiffres w-11 text-right text-xs text-faible">
+            <span className="min-w-0 flex-1 truncate text-[12.5px] text-doux">{p.label}</span>
+            <span className="chiffres text-[12.5px] text-texte">{format(p.valeur)}</span>
+            <span className="chiffres w-10 text-right text-[11px] text-faible">
               {((p.valeur / total) * 100).toFixed(0)} %
             </span>
           </li>
@@ -254,11 +277,11 @@ function Infobulle({
   const aDroite = x > largeur / 2;
   return (
     <div
-      className="pointer-events-none absolute top-1 z-10 rounded-lg border border-bord bg-fond px-2.5 py-1.5 shadow-lg"
+      className="pointer-events-none absolute top-1 z-10 rounded-[7px] border border-bord-fort bg-elev px-2.5 py-1.5 shadow-xl"
       style={aDroite ? { right: largeur - x + 8 } : { left: x + 8 }}
     >
-      <p className="text-[11px] text-faible">{titre}</p>
-      <p className="chiffres text-sm text-texte">{valeur}</p>
+      <p className="text-[10.5px] text-faible">{titre}</p>
+      <p className="chiffres text-[13px] font-medium text-texte">{valeur}</p>
     </div>
   );
 }

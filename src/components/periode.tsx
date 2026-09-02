@@ -23,17 +23,17 @@ export default function SelecteurPeriode({
         <Link
           key={p}
           href={lien(p)}
-          className={`rounded-full px-3 py-1.5 text-[13px] transition ${
+          className={`rounded-[7px] px-2.5 py-[6px] text-[12.5px] transition-colors ${
             p === actif
-              ? "bg-accent font-medium text-[#04120c]"
-              : "border border-bord text-doux hover:border-bord-fort hover:text-texte"
+              ? "bg-accent font-medium text-[#08210b]"
+              : "border border-bord bg-carte text-doux hover:border-bord-fort hover:text-texte"
           }`}
         >
           {label}
         </Link>
       ))}
       {actif === "perso" && (
-        <span className="rounded-full bg-carte-haut px-3 py-1.5 text-[13px] text-texte">
+        <span className="rounded-[7px] bg-carte-haut px-2.5 py-[6px] text-[12.5px] text-texte">
           {libelle}
         </span>
       )}

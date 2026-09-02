@@ -35,10 +35,10 @@ function Liens({ slug, onClic }: { slug: string; onClic?: () => void }) {
   const chemin = usePathname();
   const base = `/dashboard/${slug}`;
   return (
-    <nav className="mt-7 space-y-6">
+    <nav className="mt-5 space-y-5">
       {SECTIONS.map((s) => (
         <div key={s.titre}>
-          <p className="px-3 pb-2 text-[11px] font-medium uppercase tracking-wider text-faible">
+          <p className="surtitre px-2.5 pb-1.5">
             {s.titre}
           </p>
           <div className="space-y-0.5">
@@ -47,7 +47,7 @@ function Liens({ slug, onClic }: { slug: string; onClic?: () => void }) {
               const actif = l.href === "" ? chemin === base : chemin.startsWith(href);
               if (l.bientot)
                 return (
-                  <span key={l.label} className="flex cursor-not-allowed items-center justify-between rounded-xl px-3 py-2 text-sm text-faible/60">
+                  <span key={l.label} className="flex cursor-not-allowed items-center justify-between rounded-[7px] px-2.5 py-[7px] text-[12.5px] text-faible/60">
                     {l.label}
                     <span className="text-[10px] uppercase tracking-wide">soon</span>
                   </span>
@@ -55,8 +55,10 @@ function Liens({ slug, onClic }: { slug: string; onClic?: () => void }) {
               return (
                 <Link
                   key={l.label} href={href} onClick={onClic}
-                  className={`block rounded-xl px-3 py-2 text-sm transition ${
-                    actif ? "bg-carte-haut font-medium text-texte" : "text-doux hover:bg-carte hover:text-texte"
+                  className={`block rounded-[7px] px-2.5 py-[7px] text-[12.5px] transition-colors ${
+                    actif
+                      ? "bg-carte-haut font-medium text-texte"
+                      : "text-doux hover:bg-carte hover:text-texte"
                   }`}
                 >
                   {l.label}
@@ -93,7 +95,7 @@ export function NavMobile({ slug, boutique }: { slug: string; boutique: string }
         <button
           onClick={() => setOuvert(true)}
           aria-label="Ouvrir le menu"
-          className="rounded-xl border border-bord px-3 py-2 text-sm text-doux transition hover:text-texte"
+          className="rounded-[7px] border border-bord bg-carte px-2.5 py-1.5 text-[12.5px] text-doux transition-colors hover:text-texte"
         >
           Menu
         </button>
@@ -112,21 +114,21 @@ export function NavMobile({ slug, boutique }: { slug: string; boutique: string }
               <button
                 onClick={() => setOuvert(false)}
                 aria-label="Fermer"
-                className="rounded-lg px-2 py-1 text-xl leading-none text-faible"
+                className="rounded-[7px] px-2 py-1 text-xl leading-none text-faible"
               >
                 ×
               </button>
             </div>
-            <div className="mt-4 rounded-xl border border-bord bg-carte px-3 py-2.5">
-              <p className="truncate text-sm font-medium text-texte">{boutique}</p>
+            <div className="mt-4 rounded-[9px] border border-bord bg-carte px-3 py-2.5">
+              <p className="truncate text-[13px] font-medium text-texte">{boutique}</p>
             </div>
             <Liens slug={slug} onClic={() => setOuvert(false)} />
             <div className="mt-auto space-y-0.5 pt-8">
-              <Link href="/select" className="block rounded-xl px-3 py-2 text-xs text-faible">
+              <Link href="/select" className="block rounded-[7px] px-2.5 py-1.5 text-[11.5px] text-faible">
                 Changer de boutique
               </Link>
               <form action="/auth/signout" method="post">
-                <button className="block rounded-xl px-3 py-2 text-xs text-faible">
+                <button className="block rounded-[7px] px-2.5 py-1.5 text-[11.5px] text-faible">
                   Se déconnecter
                 </button>
               </form>

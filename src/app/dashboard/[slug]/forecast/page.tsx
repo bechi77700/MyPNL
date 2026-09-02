@@ -50,7 +50,7 @@ export default async function ForecastPage({
         <EnTetePage titre="Forecast" sous={boutique!.name} />
         <Carte className="border-dashed px-6 py-14 text-center">
           <p className="text-doux">Pas encore de mois complet à projeter.</p>
-          <p className="mt-1.5 text-sm text-faible">
+          <p className="mt-1.5 text-[13px] text-faible">
             Reviens quand un mois entier sera terminé.
           </p>
         </Carte>
@@ -83,7 +83,7 @@ export default async function ForecastPage({
           <p className="font-medium text-alerte">
             Dépense publicitaire incomplète sur {libelle}
           </p>
-          <p className="mt-1 text-sm text-doux">
+          <p className="mt-1 text-[13px] text-doux">
             Je n&apos;ai que <b className="text-texte">{couverturePub} jour{couverturePub > 1 ? "s" : ""}</b> de
             dépense sur les {joursDuMois} du mois. Le taux de départ ({Math.round(base.tauxPub * 100)} %
             du CA) est donc très en dessous de la réalité, et{" "}

@@ -19,7 +19,7 @@ export default async function LoginPage({
     <main className="flex min-h-screen items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm">
         <Logo />
-        <p className="mt-6 text-sm text-doux">
+        <p className="mt-6 text-[13px] text-doux">
           {premierCompte
             ? "Première connexion — crée ton compte administrateur."
             : "Connecte-toi pour accéder à tes tableaux de bord."}
@@ -31,7 +31,7 @@ export default async function LoginPage({
           />
         </div>
         {premierCompte && (
-          <p className="mt-6 text-xs leading-relaxed text-faible">
+          <p className="mt-6 text-[11.5px] leading-relaxed text-faible">
             Ce premier compte aura tous les droits : boutiques, coûts et utilisateurs.
           </p>
         )}

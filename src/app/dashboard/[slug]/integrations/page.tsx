@@ -47,7 +47,7 @@ export default async function IntegrationsPage({
   const meta = listeEtats.find((e) => e.platform === "meta");
   const comptesMeta = (comptes ?? []).filter((c) => c.platform === "meta");
 
-  const cls = "rounded-xl border border-bord bg-fond px-3 py-2 text-texte outline-none transition focus:border-accent/60";
+  const cls = "rounded-[7px] border border-bord bg-fond px-3 py-2 text-texte outline-none transition focus:border-accent/60";
 
   return (
     <div className="px-7 py-8">
@@ -73,14 +73,14 @@ export default async function IntegrationsPage({
                 {shopify?.status === "connected" ? "connecté" : (shopify?.status ?? "absent")}
               </Pastille>
             </p>
-            <p className="mt-1 text-sm text-faible">
+            <p className="mt-1 text-[13px] text-faible">
               Commandes, frais de transaction réels, litiges et sessions.
               {shopify?.last_sync_at && (
                 <> Dernière synchro : {new Date(shopify.last_sync_at).toLocaleString("fr-FR")}.</>
               )}
             </p>
             {shopify?.last_error && (
-              <p className="mt-1 text-sm text-negatif">{shopify.last_error}</p>
+              <p className="mt-1 text-[13px] text-negatif">{shopify.last_error}</p>
             )}
           </div>
           <form action={synchroniserMaintenant.bind(null, slug)}>
@@ -100,14 +100,14 @@ export default async function IntegrationsPage({
                 {meta?.status === "connected" ? "connecté" : "non connecté"}
               </Pastille>
             </p>
-            <p className="mt-1 text-sm text-faible">
+            <p className="mt-1 text-[13px] text-faible">
               Dépense publicitaire quotidienne.
               {parPlateforme.get("meta") != null && (
                 <> Total importé : {Math.round(parPlateforme.get("meta")!).toLocaleString("fr-FR")} {devise}.</>
               )}
             </p>
             {meta?.expires_at && (
-              <p className={`mt-1 text-sm ${
+              <p className={`mt-1 text-[13px] ${
                 (meta.jours_restants ?? 99) <= 0 ? "text-negatif"
                 : (meta.jours_restants ?? 99) <= 10 ? "text-alerte" : "text-faible"
               }`}>
@@ -116,7 +116,7 @@ export default async function IntegrationsPage({
                   : `Jeton valable encore ${meta.jours_restants} jours (jusqu'au ${new Date(meta.expires_at).toLocaleDateString("fr-FR")}).`}
               </p>
             )}
-            {meta?.last_error && <p className="mt-1 text-sm text-negatif">{meta.last_error}</p>}
+            {meta?.last_error && <p className="mt-1 text-[13px] text-negatif">{meta.last_error}</p>}
           </div>
           {meta?.status === "connected" && (
             <form action={synchroniserMaintenant.bind(null, slug)}>
@@ -133,14 +133,14 @@ export default async function IntegrationsPage({
               {meta?.status === "connected" ? "Reconnecter Meta" : "Connecter Meta"}
             </Bouton>
           </form>
-          <span className="text-xs text-faible">
+          <span className="text-[11.5px] text-faible">
             Tu seras redirigé vers Facebook pour autoriser la lecture de tes
             comptes publicitaires. Aucun droit d&apos;écriture n&apos;est demandé.
           </span>
         </div>
 
         <details className="mt-3">
-          <summary className="cursor-pointer text-xs text-faible transition hover:text-doux">
+          <summary className="cursor-pointer text-[11.5px] text-faible transition-colors hover:text-doux">
             Coller un jeton à la main
           </summary>
           <form action={connecterMeta.bind(null, slug)} className="mt-2 flex flex-col gap-2 sm:flex-row">
@@ -154,14 +154,14 @@ export default async function IntegrationsPage({
             <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-faible">
               Comptes publicitaires — active ceux à suivre pour {boutique!.name}
             </p>
-            <div className="divide-y divide-bord overflow-hidden rounded-xl border border-bord">
+            <div className="divide-y divide-bord overflow-hidden rounded-[7px] border border-bord">
               {comptesMeta.map((c) => {
                 const mauvaiseDevise = c.currency && c.currency !== devise;
                 return (
                   <div key={c.id} className="flex items-center justify-between gap-3 bg-fond px-4 py-2.5">
                     <div className="min-w-0">
-                      <p className="truncate text-sm text-texte">{c.name}</p>
-                      <p className="flex items-center gap-2 text-xs text-faible">
+                      <p className="truncate text-[13px] text-texte">{c.name}</p>
+                      <p className="flex items-center gap-2 text-[11.5px] text-faible">
                         {c.external_id} · {c.currency}
                         {mauvaiseDevise && <Pastille ton="ambre">devise ≠ {devise}</Pastille>}
                         {c.last_error && <span className="text-negatif">{c.last_error}</span>}
@@ -169,7 +169,7 @@ export default async function IntegrationsPage({
                     </div>
                     <form action={basculerCompte.bind(null, slug, c.id, !c.enabled)}>
                       <button
-                        className={`rounded-lg border px-3 py-1.5 text-xs transition ${
+                        className={`rounded-[7px] border px-3 py-1.5 text-[11.5px] transition ${
                           c.enabled
                             ? "border-accent/40 text-accent"
                             : "border-bord text-faible hover:text-doux"
@@ -182,7 +182,7 @@ export default async function IntegrationsPage({
                 );
               })}
             </div>
-            <p className="mt-2 text-xs text-faible">
+            <p className="mt-2 text-[11.5px] text-faible">
               Un compte dans une autre devise que {devise} est ignoré à la synchro :
               additionner des devises fausserait le P&amp;L.
             </p>
@@ -193,27 +193,27 @@ export default async function IntegrationsPage({
       {/* ── Saisie manuelle ── */}
       <Carte className="mt-3 px-5 py-5">
         <p className="font-medium text-texte">Dépense manuelle</p>
-        <p className="mt-1 text-sm text-faible">
+        <p className="mt-1 text-[13px] text-faible">
           Pour une plateforme non connectée. Le montant est réparti au prorata des
           jours de la période.
         </p>
         <form action={ajouterDepenseManuelle.bind(null, slug)} className="mt-4 flex flex-wrap items-end gap-2.5">
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-faible">Plateforme</span>
+            <span className="text-[11.5px] text-faible">Plateforme</span>
             <select name="platform" className={cls}>
               {PLATEFORMES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-faible">Du</span>
+            <span className="text-[11.5px] text-faible">Du</span>
             <Champ name="du" type="date" required className="chiffres" />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-faible">Au</span>
+            <span className="text-[11.5px] text-faible">Au</span>
             <Champ name="au" type="date" required className="chiffres" />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-faible">Montant total ({devise})</span>
+            <span className="text-[11.5px] text-faible">Montant total ({devise})</span>
             <Champ name="montant" type="number" step="0.01" min="0" required className="chiffres w-32 text-right" />
           </label>
           <Bouton type="submit" variante="discret">Ajouter</Bouton>
@@ -223,7 +223,7 @@ export default async function IntegrationsPage({
       {/* ── Import CSV ── */}
       <Carte className="mt-3 px-5 py-5">
         <p className="font-medium text-texte">Importer un export Ads Manager</p>
-        <p className="mt-1 max-w-2xl text-sm text-faible">
+        <p className="mt-1 max-w-2xl text-[13px] text-faible">
           Pour récupérer la dépense d&apos;un compte publicitaire désactivé, que Meta
           refuse de reconnecter. Dans Ads Manager, ouvre le compte, mets la
           ventilation <b className="text-doux">par jour</b>, puis exporte en CSV.
@@ -231,16 +231,16 @@ export default async function IntegrationsPage({
         </p>
         <form action={importerCsvDepenses.bind(null, slug)} className="mt-4 flex flex-wrap items-end gap-2.5">
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-faible">Plateforme</span>
+            <span className="text-[11.5px] text-faible">Plateforme</span>
             <select name="platform" className={cls}>
               {PLATEFORMES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-faible">Fichier CSV</span>
+            <span className="text-[11.5px] text-faible">Fichier CSV</span>
             <input
               type="file" name="fichier" accept=".csv,text/csv" required
-              className="rounded-xl border border-bord bg-fond px-3 py-1.5 text-sm text-doux file:mr-3 file:rounded-lg file:border-0 file:bg-carte-haut file:px-3 file:py-1.5 file:text-texte"
+              className="rounded-[7px] border border-bord bg-fond px-3 py-1.5 text-[13px] text-doux file:mr-3 file:rounded-[7px] file:border-0 file:bg-carte-haut file:px-3 file:py-1.5 file:text-texte"
             />
           </label>
           <Bouton type="submit" variante="discret">Importer</Bouton>
@@ -248,7 +248,7 @@ export default async function IntegrationsPage({
       </Carte>
 
       {parPlateforme.size > 0 && (
-        <p className="mt-5 text-sm text-faible">
+        <p className="mt-5 text-[13px] text-faible">
           Dépense enregistrée :{" "}
           {[...parPlateforme].map(([p, v]) =>
             `${PLATEFORMES.find((x) => x[0] === p)?.[1] ?? p} ${Math.round(v).toLocaleString("fr-FR")} ${devise}`,

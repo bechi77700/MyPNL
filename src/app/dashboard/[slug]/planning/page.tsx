@@ -78,14 +78,14 @@ export default async function PlanningPage({
       />
 
       <Carte className="px-6 py-6">
-        <h2 className="mb-4 text-sm font-medium text-texte">Du CA hors taxes à l&apos;EBITDA</h2>
+        <h2 className="mb-4 text-[13px] font-medium text-texte">Du CA hors taxes à l&apos;EBITDA</h2>
         <div className="space-y-1.5">
           {cascade.map(([label, valeur, cout]) => {
             const p = pct(Math.abs(valeur));
             const total = !cout;
             return (
               <div key={label} className="flex items-center gap-4">
-                <span className={`w-48 shrink-0 text-sm ${total ? "font-medium text-texte" : "text-doux"}`}>
+                <span className={`w-48 shrink-0 text-[13px] ${total ? "font-medium text-texte" : "text-doux"}`}>
                   {label}
                 </span>
                 <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-carte-haut">
@@ -96,12 +96,12 @@ export default async function PlanningPage({
                     style={{ width: `${Math.min(100, p)}%` }}
                   />
                 </div>
-                <span className={`chiffres w-28 shrink-0 text-right text-sm ${
+                <span className={`chiffres w-28 shrink-0 text-right text-[13px] ${
                   valeur < 0 && total ? "text-negatif" : total ? "text-texte" : "text-faible"
                 }`}>
                   {m(valeur)}
                 </span>
-                <span className="chiffres w-16 shrink-0 text-right text-xs text-faible">
+                <span className="chiffres w-16 shrink-0 text-right text-[11.5px] text-faible">
                   {formaterPourcent(p, 0)}
                 </span>
               </div>
@@ -112,7 +112,7 @@ export default async function PlanningPage({
 
       <Carte className="mt-4 px-6 py-6">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h2 className="text-sm font-medium text-texte">Santé des charges de structure</h2>
+          <h2 className="text-[13px] font-medium text-texte">Santé des charges de structure</h2>
           <span className="flex items-center gap-2.5">
             <span className="chiffres text-lg text-texte">{formaterPourcent(pctOpex)}</span>
             <Pastille ton={ton}>{etat}</Pastille>
@@ -128,20 +128,20 @@ export default async function PlanningPage({
         <div className="mt-1.5 flex justify-between text-[10px] text-faible">
           <span>0 %</span><span>5 %</span><span>13 %</span><span>16 %</span><span>25 %</span>
         </div>
-        <p className="mt-3 max-w-2xl text-sm text-doux">{explication}</p>
+        <p className="mt-3 max-w-2xl text-[13px] text-doux">{explication}</p>
       </Carte>
 
       <Carte className="mt-4 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-max text-sm">
-            <thead className="bg-carte-haut text-[11px] uppercase tracking-wider text-faible">
+          <table className="w-full min-w-max text-[13px]">
+            <thead className="bg-carte-haut surtitre">
               <tr>
-                <th className="px-5 py-3 text-left font-medium">Mois</th>
-                <th className="px-4 py-3 text-right font-medium">CA HT</th>
-                <th className="px-4 py-3 text-right font-medium">Marge brute</th>
-                <th className="px-4 py-3 text-right font-medium">Taux</th>
-                <th className="px-4 py-3 text-right font-medium">Contribution</th>
-                <th className="px-5 py-3 text-right font-medium">EBITDA</th>
+                <th className="px-4 py-2.5 text-left font-medium">Mois</th>
+                <th className="px-4 py-2.5 text-right font-medium">CA HT</th>
+                <th className="px-4 py-2.5 text-right font-medium">Marge brute</th>
+                <th className="px-4 py-2.5 text-right font-medium">Taux</th>
+                <th className="px-4 py-2.5 text-right font-medium">Contribution</th>
+                <th className="px-4 py-2.5 text-right font-medium">EBITDA</th>
               </tr>
             </thead>
             <tbody>
@@ -149,18 +149,18 @@ export default async function PlanningPage({
                 const ht = n(x.revenue_ht);
                 return (
                   <tr key={x.bucket} className="border-t border-bord">
-                    <td className="px-5 py-2.5 text-doux">
+                    <td className="px-4 py-[9px] text-doux">
                       {new Date(x.bucket + "T12:00:00Z").toLocaleDateString("fr-FR", {
                         month: "long", year: "numeric",
                       })}
                     </td>
-                    <td className="chiffres px-4 py-2.5 text-right text-texte">{m(ht)}</td>
-                    <td className="chiffres px-4 py-2.5 text-right text-doux">{m(n(x.gross_margin))}</td>
-                    <td className="chiffres px-4 py-2.5 text-right text-faible">
+                    <td className="chiffres px-4 py-[9px] text-right text-texte">{m(ht)}</td>
+                    <td className="chiffres px-4 py-[9px] text-right text-doux">{m(n(x.gross_margin))}</td>
+                    <td className="chiffres px-4 py-[9px] text-right text-faible">
                       {ht > 0 ? formaterPourcent((n(x.gross_margin) / ht) * 100, 0) : "—"}
                     </td>
-                    <td className="chiffres px-4 py-2.5 text-right text-doux">{m(n(x.contribution))}</td>
-                    <td className={`chiffres px-5 py-2.5 text-right font-medium ${
+                    <td className="chiffres px-4 py-[9px] text-right text-doux">{m(n(x.contribution))}</td>
+                    <td className={`chiffres px-4 py-[9px] text-right font-medium ${
                       n(x.ebitda) < 0 ? "text-negatif" : "text-texte"
                     }`}>
                       {m(n(x.ebitda))}

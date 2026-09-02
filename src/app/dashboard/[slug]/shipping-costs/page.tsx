@@ -62,10 +62,10 @@ export default async function ShippingPage({
 
       {surRepli.length > 0 && (
         <Carte className="mb-5 border-alerte/30 bg-alerte/5 px-5 py-4">
-          <p className="text-sm font-medium text-alerte">
+          <p className="text-[13px] font-medium text-alerte">
             Tarif de repli appliqué sur {surRepli.reduce((a, r) => a + Number(r.estimees), 0)} commandes
           </p>
-          <p className="mt-1 text-sm text-doux">
+          <p className="mt-1 text-[13px] text-doux">
             Quand un produit n&apos;a pas de tarif pour un marché, MyPNL applique
             automatiquement celui des <b className="text-texte">États-Unis</b> plutôt que
             de laisser le COGS à zéro. Concerné :{" "}
@@ -83,9 +83,9 @@ export default async function ShippingPage({
           <Link
             key={p.country}
             href={`/dashboard/${slug}/shipping-costs?pays=${p.country}`}
-            className={`rounded-full px-3.5 py-1.5 text-sm transition ${
+            className={`rounded-full px-3.5 py-1.5 text-[13px] transition ${
               p.country === paysActif
-                ? "bg-accent font-medium text-[#04120c]"
+                ? "bg-accent font-medium text-[#08210b]"
                 : "border border-bord text-doux hover:border-bord-fort hover:text-texte"
             }`}
           >
@@ -97,7 +97,7 @@ export default async function ShippingPage({
         ))}
       </div>
 
-      <p className="mb-4 text-sm text-faible">
+      <p className="mb-4 text-[13px] text-faible">
         {remplis} / {expediables.length} produits renseignés pour {paysActif}
       </p>
 
@@ -105,51 +105,51 @@ export default async function ShippingPage({
         <input type="hidden" name="pays" value={paysActif} />
         <Carte className="overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-carte-haut text-left text-[11px] uppercase tracking-wider text-faible">
+            <table className="w-full text-[13px]">
+              <thead className="bg-carte-haut text-left surtitre">
                 <tr>
                   <th className="px-5 py-3 font-medium">Produit</th>
-                  <th className="px-3 py-3 text-right font-medium">Cmd</th>
-                  <th className="px-3 py-3 text-right font-medium">Standard ({devise})</th>
-                  <th className="px-5 py-3 text-right font-medium">Upsell ({devise})</th>
+                  <th className="px-3 py-[9px] text-right font-medium">Cmd</th>
+                  <th className="px-3 py-[9px] text-right font-medium">Standard ({devise})</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Upsell ({devise})</th>
                 </tr>
               </thead>
               <tbody>
                 {expediables.map((s) => {
                   const g = parSku.get(s.sku);
                   return (
-                    <tr key={s.sku} className="border-t border-bord transition hover:bg-carte-haut/50">
-                      <td className="px-5 py-2.5">
+                    <tr key={s.sku} className="border-t border-bord transition-colors hover:bg-carte-haut/50">
+                      <td className="px-4 py-[9px]">
                         <div className="flex items-center gap-3">
                           {s.image_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={s.image_url} alt="" className="size-9 shrink-0 rounded-lg border border-bord object-cover" />
+                            <img src={s.image_url} alt="" className="size-9 shrink-0 rounded-[7px] border border-bord object-cover" />
                           ) : (
-                            <div className="size-9 shrink-0 rounded-lg border border-bord bg-carte-haut" />
+                            <div className="size-9 shrink-0 rounded-[7px] border border-bord bg-carte-haut" />
                           )}
                           <div className="min-w-0">
                             <p className="truncate text-texte">{nomSku(s)}</p>
                             {s.variant_title && (
-                              <p className="text-xs text-faible">{s.variant_title}</p>
+                              <p className="text-[11.5px] text-faible">{s.variant_title}</p>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="chiffres px-3 py-2.5 text-right text-doux">{s.orders_count}</td>
-                      <td className="px-3 py-2.5 text-right">
+                      <td className="chiffres px-3 py-[9px] text-right text-doux">{s.orders_count}</td>
+                      <td className="px-3 py-[9px] text-right">
                         <input
                           type="number" step="0.01" min="0"
                           name={`std__${s.sku}`} defaultValue={g?.standard || ""}
                           placeholder="0.00"
-                          className="chiffres w-24 rounded-lg border border-bord bg-fond px-2.5 py-1.5 text-right text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
+                          className="chiffres w-24 rounded-[7px] border border-bord bg-fond px-2.5 py-1.5 text-right text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
                         />
                       </td>
-                      <td className="px-5 py-2.5 text-right">
+                      <td className="px-4 py-[9px] text-right">
                         <input
                           type="number" step="0.01" min="0"
                           name={`ups__${s.sku}`} defaultValue={g?.upsell || ""}
                           placeholder="0.00"
-                          className="chiffres w-24 rounded-lg border border-bord bg-fond px-2.5 py-1.5 text-right text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
+                          className="chiffres w-24 rounded-[7px] border border-bord bg-fond px-2.5 py-1.5 text-right text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
                         />
                       </td>
                     </tr>

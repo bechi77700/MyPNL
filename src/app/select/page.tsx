@@ -31,7 +31,7 @@ export default async function SelectPage({
         <header className="mb-9 flex items-start justify-between gap-4">
           <div>
             <Logo />
-            <p className="mt-3 flex items-center gap-2 text-sm text-doux">
+            <p className="mt-3 flex items-center gap-2 text-[13px] text-doux">
               {profil?.email}
               {estAdmin && <Pastille ton="vert">admin</Pastille>}
             </p>
@@ -46,10 +46,10 @@ export default async function SelectPage({
         {boutiques && boutiques.length > 1 && (
           <Link
             href="/overview"
-            className="mb-3 flex items-center justify-between rounded-2xl border border-accent/30 bg-accent/5 px-5 py-4 transition hover:border-accent/50"
+            className="mb-3 flex items-center justify-between rounded-[9px] border border-accent/30 bg-accent/5 px-5 py-4 transition-colors hover:border-accent/50"
           >
             <span className="font-medium text-accent">Vue consolidée</span>
-            <span className="text-sm text-doux">
+            <span className="text-[13px] text-doux">
               les {boutiques.length} boutiques ensemble
             </span>
           </Link>
@@ -61,10 +61,10 @@ export default async function SelectPage({
               <li key={b.id}>
                 <Link
                   href={`/dashboard/${b.slug}`}
-                  className="flex items-center justify-between rounded-2xl border border-bord bg-carte px-5 py-4 transition hover:border-bord-fort hover:bg-carte-haut"
+                  className="flex items-center justify-between rounded-[9px] border border-bord bg-carte px-5 py-4 transition-colors hover:border-bord-fort hover:bg-carte-haut"
                 >
                   <span className="font-medium text-texte">{b.name}</span>
-                  <span className="text-sm text-faible">
+                  <span className="text-[13px] text-faible">
                     {b.currency} · {b.timezone}
                   </span>
                 </Link>
@@ -83,8 +83,8 @@ export default async function SelectPage({
 
         {estAdmin && (
           <Carte className="mt-8 px-5 py-5">
-            <h2 className="text-sm font-medium text-texte">Ajouter une boutique</h2>
-            <p className="mt-1 text-sm text-faible">
+            <h2 className="text-[13px] font-medium text-texte">Ajouter une boutique</h2>
+            <p className="mt-1 text-[13px] text-faible">
               Entre son adresse Shopify. Tu seras redirigé vers Shopify pour
               autoriser l&apos;accès en lecture.
             </p>

@@ -39,7 +39,7 @@ export default function LoginForm({
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div>
-        <label htmlFor="email" className="mb-1.5 block text-sm text-doux">
+        <label htmlFor="email" className="mb-1.5 block text-[13px] text-doux">
           Email
         </label>
         <input
@@ -49,13 +49,13 @@ export default function LoginForm({
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-xl border border-bord bg-carte px-3.5 py-2.5 text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
+          className="w-full rounded-[7px] border border-bord bg-carte px-3.5 py-2.5 text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
           placeholder="toi@exemple.com"
         />
       </div>
 
       <div>
-        <label htmlFor="mdp" className="mb-1.5 block text-sm text-doux">
+        <label htmlFor="mdp" className="mb-1.5 block text-[13px] text-doux">
           Mot de passe
         </label>
         <input
@@ -66,13 +66,13 @@ export default function LoginForm({
           autoComplete={premierCompte ? "new-password" : "current-password"}
           value={motDePasse}
           onChange={(e) => setMotDePasse(e.target.value)}
-          className="w-full rounded-xl border border-bord bg-carte px-3.5 py-2.5 text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
+          className="w-full rounded-[7px] border border-bord bg-carte px-3.5 py-2.5 text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
           placeholder={premierCompte ? "8 caractères minimum" : "••••••••"}
         />
       </div>
 
       {erreur && (
-        <p className="rounded-xl border border-negatif/40 bg-negatif/10 px-3.5 py-2.5 text-sm text-negatif">
+        <p className="rounded-[7px] border border-negatif/40 bg-negatif/10 px-3.5 py-2.5 text-[13px] text-negatif">
           {erreur}
         </p>
       )}
@@ -80,7 +80,7 @@ export default function LoginForm({
       <button
         type="submit"
         disabled={enCours}
-        className="w-full rounded-xl bg-accent px-4 py-2.5 font-medium text-[#04120c] transition hover:bg-[#4ade80] disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full rounded-[7px] bg-accent px-4 py-2.5 font-medium text-[#08210b] transition-colors hover:bg-accent-vif disabled:cursor-not-allowed disabled:opacity-50"
       >
         {enCours
           ? "Un instant…"

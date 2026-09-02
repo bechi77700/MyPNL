@@ -43,32 +43,32 @@ export default async function ProduitsPage({
         <input type="hidden" name="voir" value={voir ?? ""} />
         <Carte className="overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-carte-haut text-left text-[11px] uppercase tracking-wider text-faible">
+            <table className="w-full text-[13px]">
+              <thead className="bg-carte-haut text-left surtitre">
                 <tr>
                   <th className="px-5 py-3 font-medium">Produit</th>
-                  <th className="px-3 py-3 text-right font-medium">Cmd</th>
-                  <th className="px-3 py-3 text-right font-medium">Articles</th>
-                  <th className="px-3 py-3 text-right font-medium">Prix</th>
-                  <th className="px-3 py-3 text-right font-medium">Coût ({devise})</th>
+                  <th className="px-3 py-[9px] text-right font-medium">Cmd</th>
+                  <th className="px-3 py-[9px] text-right font-medium">Articles</th>
+                  <th className="px-3 py-[9px] text-right font-medium">Prix</th>
+                  <th className="px-3 py-[9px] text-right font-medium">Coût ({devise})</th>
                   <th className="px-5 py-3 text-center font-medium">Ne s&apos;expédie pas</th>
                 </tr>
               </thead>
               <tbody>
                 {visibles.map((s: Sku) => (
-                  <tr key={s.sku} className="border-t border-bord transition hover:bg-carte-haut/50">
-                    <td className="px-5 py-2.5">
+                  <tr key={s.sku} className="border-t border-bord transition-colors hover:bg-carte-haut/50">
+                    <td className="px-4 py-[9px]">
                       <input type="hidden" name={`skus__${s.sku}`} value="1" />
                       <div className="flex items-center gap-3">
                         {s.image_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={s.image_url} alt="" className="size-9 shrink-0 rounded-lg border border-bord object-cover" />
+                          <img src={s.image_url} alt="" className="size-9 shrink-0 rounded-[7px] border border-bord object-cover" />
                         ) : (
-                          <div className="size-9 shrink-0 rounded-lg border border-bord bg-carte-haut" />
+                          <div className="size-9 shrink-0 rounded-[7px] border border-bord bg-carte-haut" />
                         )}
                         <div className="min-w-0">
                           <p className="truncate text-texte">{nomSku(s)}</p>
-                          <p className="flex items-center gap-2 text-xs text-faible">
+                          <p className="flex items-center gap-2 text-[11.5px] text-faible">
                             {s.variant_title && <span>{s.variant_title}</span>}
                             {s.status && s.status !== "active" && (
                               <Pastille ton="ambre">
@@ -79,20 +79,20 @@ export default async function ProduitsPage({
                         </div>
                       </div>
                     </td>
-                    <td className="chiffres px-3 py-2.5 text-right text-doux">{s.orders_count}</td>
-                    <td className="chiffres px-3 py-2.5 text-right text-doux">{s.units}</td>
-                    <td className="chiffres px-3 py-2.5 text-right text-faible">
+                    <td className="chiffres px-3 py-[9px] text-right text-doux">{s.orders_count}</td>
+                    <td className="chiffres px-3 py-[9px] text-right text-doux">{s.units}</td>
+                    <td className="chiffres px-3 py-[9px] text-right text-faible">
                       {s.price != null ? Number(s.price).toFixed(2) : "—"}
                     </td>
-                    <td className="px-3 py-2.5 text-right">
+                    <td className="px-3 py-[9px] text-right">
                       <input
                         type="number" step="0.01" min="0"
                         name={`cout__${s.sku}`} defaultValue={s.cost || ""}
                         placeholder="0.00"
-                        className="chiffres w-24 rounded-lg border border-bord bg-fond px-2.5 py-1.5 text-right text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
+                        className="chiffres w-24 rounded-[7px] border border-bord bg-fond px-2.5 py-1.5 text-right text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
                       />
                     </td>
-                    <td className="px-5 py-2.5 text-center">
+                    <td className="px-4 py-[9px] text-center">
                       <input
                         type="checkbox" name={`nolivraison__${s.sku}`}
                         defaultChecked={s.exclude_from_shipping}
@@ -111,7 +111,7 @@ export default async function ProduitsPage({
           {inactifsVendus.length > 0 && (
             <Link
               href={`/dashboard/${slug}/produits${tout ? "" : "?voir=tout"}`}
-              className="text-sm text-doux underline-offset-4 transition hover:text-texte hover:underline"
+              className="text-[13px] text-doux underline-offset-4 transition-colors hover:text-texte hover:underline"
             >
               {tout
                 ? "Masquer les brouillons"
@@ -121,7 +121,7 @@ export default async function ProduitsPage({
         </div>
       </form>
 
-      <p className="mt-6 max-w-2xl text-xs leading-relaxed text-faible">
+      <p className="mt-6 max-w-2xl text-[11.5px] leading-relaxed text-faible">
         Coche <b className="text-doux">ne s&apos;expédie pas</b> pour les produits
         numériques (guides, ebooks). Sans ça, chaque exemplaire vendu ajouterait un
         tarif de livraison qui n&apos;existe pas.

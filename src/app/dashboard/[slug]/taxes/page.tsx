@@ -55,20 +55,20 @@ export default async function TaxesPage({
 
       <form action={enregistrerTaxes.bind(null, slug)}>
         <Carte className="px-5 py-5">
-          <p className="mb-3 text-sm font-medium text-texte">Comment traiter les taxes</p>
+          <p className="mb-3 text-[13px] font-medium text-texte">Comment traiter les taxes</p>
           <div className="space-y-2">
             {MODES.map(([v, titre, desc]) => (
               <label
                 key={v}
-                className="flex cursor-pointer gap-3 rounded-xl border border-bord bg-fond px-4 py-3 transition hover:border-bord-fort"
+                className="flex cursor-pointer gap-3 rounded-[7px] border border-bord bg-fond px-4 py-3 transition-colors hover:border-bord-fort"
               >
                 <input
                   type="radio" name="mode" value={v} defaultChecked={mode === v}
                   className="mt-0.5 size-4 shrink-0 accent-[#34d399]"
                 />
                 <span className="min-w-0">
-                  <span className="block text-sm text-texte">{titre}</span>
-                  <span className="mt-0.5 block text-xs leading-relaxed text-faible">{desc}</span>
+                  <span className="block text-[13px] text-texte">{titre}</span>
+                  <span className="mt-0.5 block text-[11.5px] leading-relaxed text-faible">{desc}</span>
                 </span>
               </label>
             ))}
@@ -76,24 +76,24 @@ export default async function TaxesPage({
         </Carte>
 
         <Carte className="mt-3 px-5 py-5">
-          <p className="text-sm font-medium text-texte">Taux par pays</p>
-          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-faible">
+          <p className="text-[13px] font-medium text-texte">Taux par pays</p>
+          <p className="mt-1 max-w-2xl text-[11.5px] leading-relaxed text-faible">
             Utilisés uniquement si tu choisis « Taux que je saisis ». Laisse vide pour
             ne rien déduire sur ce pays. Le taux indicatif est le taux usuel du pays —
             il n&apos;est jamais appliqué tout seul.
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {listePays.map((p) => (
-              <label key={p} className="flex items-center gap-3 rounded-xl border border-bord bg-fond px-3.5 py-2.5">
-                <span className="w-8 shrink-0 text-sm text-texte">{p}</span>
+              <label key={p} className="flex items-center gap-3 rounded-[7px] border border-bord bg-fond px-3.5 py-2.5">
+                <span className="w-8 shrink-0 text-[13px] text-texte">{p}</span>
                 <input
                   type="number" step="0.1" min="0" max="100"
                   name={`taux__${p}`}
                   defaultValue={actuels.get(p) ?? ""}
                   placeholder="0"
-                  className="chiffres w-20 rounded-lg border border-bord bg-carte px-2.5 py-1.5 text-right text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
+                  className="chiffres w-20 rounded-[7px] border border-bord bg-carte px-2.5 py-1.5 text-right text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
                 />
-                <span className="text-sm text-faible">%</span>
+                <span className="text-[13px] text-faible">%</span>
                 {suggeres.has(p) && (
                   <span className="ml-auto text-[11px] text-faible">
                     usuel {suggeres.get(p)!.toFixed(1).replace(".", ",")} %

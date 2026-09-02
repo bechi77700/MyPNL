@@ -1,21 +1,46 @@
 @import "tailwindcss";
 
-/* ── Palette : sombre, inspiree de TrendTrack, accent vert ────────── */
+/* ─────────────────────────────────────────────────────────────
+   Système de design MyPNL — sombre, neutre, accent vert vif.
+   Échelle typographique en 13 px de base : la densité vient de là.
+   Rayons courts (6–10 px) : les grands arrondis font "gabarit".
+   ───────────────────────────────────────────────────────────── */
 :root {
-  --fond:       #08080a;  /* cadre exterieur, quasi noir */
-  --panneau:    #121214;  /* panneau de contenu arrondi */
-  --carte:      #17171b;  /* cartes et tableaux */
-  --carte-haut: #1d1d22;  /* en-tetes, lignes survolees */
-  --bord:       #26262c;
-  --bord-fort:  #34343c;
-  --texte:      #f4f4f5;
-  --doux:       #a1a1ab;
-  --faible:     #6b6b76;
-  --accent:     #34d399;
-  --accent-sombre: #10b981;
-  --positif:    #34d399;
-  --negatif:    #f87171;
-  --alerte:     #fbbf24;
+  /* Surfaces, du plus profond au plus haut */
+  --fond:        #0d0d0d;
+  --panneau:     #141414;
+  --carte:       #1a1a1a;
+  --carte-haut:  #212121;
+  --elev:        #262626;
+
+  --bord:        rgb(255 255 255 / 0.07);
+  --bord-fort:   rgb(255 255 255 / 0.14);
+
+  /* Encre */
+  --texte:       #ededed;
+  --doux:        #a1a1a1;
+  --faible:      #6e6e6e;
+
+  /* Accent de marque : rare, réservé aux actions et au signal positif */
+  --accent:      #2dca02;
+  --accent-vif:  #3fe016;
+  --accent-fond: rgb(45 202 2 / 0.12);
+
+  --positif:     #2dca02;
+  --negatif:     #ff5f56;
+  --alerte:      #ffb224;
+
+  /* Séries de données — validées pour contraste et daltonisme */
+  --s1: #3987e5;
+  --s2: #d95926;
+  --s3: #199e70;
+  --s4: #c98500;
+  --s5: #d55181;
+
+  --r-xs: 5px;
+  --r-sm: 7px;
+  --r:    9px;
+  --r-lg: 13px;
 }
 
 @theme inline {
@@ -23,17 +48,27 @@
   --color-panneau: var(--panneau);
   --color-carte: var(--carte);
   --color-carte-haut: var(--carte-haut);
+  --color-elev: var(--elev);
   --color-bord: var(--bord);
   --color-bord-fort: var(--bord-fort);
   --color-texte: var(--texte);
   --color-doux: var(--doux);
   --color-faible: var(--faible);
   --color-accent: var(--accent);
+  --color-accent-vif: var(--accent-vif);
   --color-positif: var(--positif);
   --color-negatif: var(--negatif);
   --color-alerte: var(--alerte);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-s1: var(--s1);
+  --color-s2: var(--s2);
+  --color-s3: var(--s3);
+  --color-s4: var(--s4);
+  --color-s5: var(--s5);
+  --radius-xs: var(--r-xs);
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r);
+  --radius-lg: var(--r-lg);
+  --font-sans: var(--font-inter);
 }
 
 html { color-scheme: dark; }
@@ -41,17 +76,50 @@ html { color-scheme: dark; }
 body {
   background: var(--fond);
   color: var(--texte);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  /* 13 px de base : la densité d'un outil pro, pas d'un site vitrine. */
+  font-size: 13px;
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
+  font-feature-settings: "cv11", "ss01";
 }
 
-/* Les chiffres s'alignent en colonne dans les tableaux financiers. */
-.chiffres { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+/* Chiffres alignés en colonne dans tous les tableaux financiers. */
+.chiffres {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "cv11";
+  letter-spacing: -0.01em;
+}
 
-::-webkit-scrollbar { width: 10px; height: 10px; }
+/* Le grand nombre d'une carte : serré, dense, il porte l'écran. */
+.heros {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+/* Libellé de section : petit, espacé, discret. */
+.surtitre {
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faible);
+}
+
+::-webkit-scrollbar { width: 9px; height: 9px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--bord); border-radius: 9999px; border: 3px solid transparent; background-clip: content-box; }
-::-webkit-scrollbar-thumb:hover { background: var(--bord-fort); background-clip: content-box; }
+::-webkit-scrollbar-thumb {
+  background: var(--bord-fort); border-radius: 9999px;
+  border: 3px solid transparent; background-clip: content-box;
+}
 
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Focus visible et discret, jamais l'anneau bleu par défaut. */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: var(--r-xs);
+}
