@@ -34,7 +34,7 @@ export function resoudrePeriode(
     return { preset: "perso", du: params.du, au: params.au, libelle: `${params.du} → ${params.au}` };
   }
 
-  const p = (params.p as Preset) ?? "30j";
+  const p = (params.p as Preset) ?? "aujourdhui";
   switch (p) {
     case "aujourdhui":
       return { preset: p, du: auj, au: auj, libelle: "Aujourd'hui" };
