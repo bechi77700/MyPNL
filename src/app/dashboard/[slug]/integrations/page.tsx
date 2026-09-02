@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import {
-  ajouterDepenseManuelle, basculerCompte, connecterMeta, synchroniserMaintenant,
+  ajouterDepenseManuelle, basculerCompte, connecterMeta,
+  importerCsvDepenses, synchroniserMaintenant,
 } from "@/lib/actions/integrations";
 import { Bouton, Carte, Champ, EnTetePage, Message, Pastille } from "@/components/ui";
 
@@ -205,6 +206,33 @@ export default async function IntegrationsPage({
             <Champ name="montant" type="number" step="0.01" min="0" required className="chiffres w-32 text-right" />
           </label>
           <Bouton type="submit" variante="discret">Ajouter</Bouton>
+        </form>
+      </Carte>
+
+      {/* ── Import CSV ── */}
+      <Carte className="mt-3 px-5 py-5">
+        <p className="font-medium text-texte">Importer un export Ads Manager</p>
+        <p className="mt-1 max-w-2xl text-sm text-faible">
+          Pour récupérer la dépense d&apos;un compte publicitaire désactivé, que Meta
+          refuse de reconnecter. Dans Ads Manager, ouvre le compte, mets la
+          ventilation <b className="text-doux">par jour</b>, puis exporte en CSV.
+          Je détecte tout seul les colonnes de date et de montant.
+        </p>
+        <form action={importerCsvDepenses.bind(null, slug)} className="mt-4 flex flex-wrap items-end gap-2.5">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs text-faible">Plateforme</span>
+            <select name="platform" className={cls}>
+              {PLATEFORMES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs text-faible">Fichier CSV</span>
+            <input
+              type="file" name="fichier" accept=".csv,text/csv" required
+              className="rounded-xl border border-bord bg-fond px-3 py-1.5 text-sm text-doux file:mr-3 file:rounded-lg file:border-0 file:bg-carte-haut file:px-3 file:py-1.5 file:text-texte"
+            />
+          </label>
+          <Bouton type="submit" variante="discret">Importer</Bouton>
         </form>
       </Carte>
 

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { listerComptes, enregistrerToken, syncSpendMeta } from "@/lib/sync/meta";
 import { syncBoutique } from "@/lib/sync/shopify";
+import { lireCsvDepenses } from "@/lib/csv";
 
 async function contexte(slug: string) {
   const supabase = await createClient();
@@ -114,4 +115,51 @@ export async function ajouterDepenseManuelle(slug: string, form: FormData): Prom
   await admin.rpc("refresh_daily_facts", { p_shop: shopId, p_from: debut, p_to: fin });
   revalidatePath(`/dashboard/${slug}/integrations`);
   retour(slug, "ok", `${total.toLocaleString("fr-FR")} réparti sur ${nb} jours (${plateforme}).`);
+}
+
+
+/** Import d'un export Ads Manager : la seule façon de récupérer la dépense
+ *  d'un compte publicitaire désactivé, que Meta interdit de reconnecter. */
+export async function importerCsvDepenses(slug: string, form: FormData): Promise<void> {
+  const { admin, shopId } = await contexte(slug);
+  const plateforme = String(form.get("platform") ?? "meta");
+  const fichier = form.get("fichier");
+  if (!(fichier instanceof File) || fichier.size === 0)
+    retour(slug, "erreur", "Aucun fichier reçu.");
+
+  const f = fichier as File;
+  if (f.size > 5_000_000) retour(slug, "erreur", "Fichier trop volumineux (5 Mo maximum).");
+
+  let parse;
+  try {
+    parse = lireCsvDepenses(await f.text());
+  } catch (e) {
+    retour(slug, "erreur", e instanceof Error ? e.message : "CSV illisible.");
+    return;
+  }
+  if (!parse.lignes.length) retour(slug, "erreur", "Aucune ligne exploitable dans ce fichier.");
+
+  const lignes = parse.lignes.map((l) => ({
+    shop_id: shopId, date: l.date, platform: plateforme,
+    amount: l.montant, source: "manual", updated_at: new Date().toISOString(),
+  }));
+  for (let i = 0; i < lignes.length; i += 500) {
+    const { error } = await admin
+      .from("ad_spend")
+      .upsert(lignes.slice(i, i + 500), { onConflict: "shop_id,date,platform" });
+    if (error) retour(slug, "erreur", error.message);
+  }
+
+  const total = parse.lignes.reduce((a, l) => a + l.montant, 0);
+  await admin.rpc("refresh_daily_facts", {
+    p_shop: shopId,
+    p_from: parse.lignes[0].date,
+    p_to: parse.lignes[parse.lignes.length - 1].date,
+  });
+  revalidatePath(`/dashboard/${slug}/integrations`);
+  retour(
+    slug, "ok",
+    `${parse.lignes.length} jours importés (${Math.round(total).toLocaleString("fr-FR")}) ` +
+    `depuis « ${parse.colonneDate} » et « ${parse.colonneMontant} », dates lues en ${parse.format}.`,
+  );
 }
