@@ -81,6 +81,7 @@ type LigneCommande = {
   title?: string;
   variant_title?: string | null;
   product_id?: number | null;
+  variant_id?: number | null;
 };
 
 type CommandeShopify = {
@@ -163,7 +164,9 @@ export async function syncCommandes(
       // Un meme SKU peut apparaitre sur plusieurs lignes : on cumule les quantites.
       const items: Record<string, number> = {};
       for (const li of o.line_items ?? []) {
-        const sku = (li.sku || "").trim();
+        // Cle de l'article : SKU, sinon id de variante (boutiques sans SKU,
+        // ex. EverHaar). Meme regle que syncProduits.
+        const sku = (li.sku || "").trim() || (li.variant_id ? String(li.variant_id) : "");
         if (!sku) continue;
         items[sku] = (items[sku] ?? 0) + (li.quantity ?? 0);
         if (!skus.has(sku))
@@ -258,8 +261,8 @@ export async function syncProduits(admin: Admin, creds: Creds, shopId: string) {
       for (const p of lot) {
         const parId = new Map((p.images ?? []).map((i) => [i.id, i.src]));
         for (const v of p.variants ?? []) {
-          const sku = (v.sku || "").trim();
-          if (!sku) continue;
+          // Meme cle que les articles des commandes : SKU, sinon id de variante.
+          const sku = (v.sku || "").trim() || String(v.id);
           lignes.push({
             shop_id: shopId,
             sku,

@@ -126,10 +126,28 @@ export async function expirationToken(admin: Admin, shopId: string) {
 
 /**
  * Depense quotidienne d'un compte, agregee au niveau compte.
- * Meta renvoie les montants dans la devise du compte : on refuse
- * silencieusement toute devise differente de celle de la boutique,
- * plutot que d'additionner des euros a des dollars.
+ * Meta renvoie les montants dans la devise du compte. Si elle differe de
+ * celle de la boutique (ex. compte USD, boutique EUR), on convertit chaque
+ * jour au taux BCE du jour (frankfurter.app), plutot que d'ignorer le compte.
  */
+
+/** Taux de change quotidiens BCE, jours feries/week-ends reportes du dernier jour connu. */
+export async function tauxQuotidiens(de: string, vers: string, depuis: string, jusqua: string) {
+  const r = await fetch(`https://api.frankfurter.app/${depuis}..${jusqua}?from=${de}&to=${vers}`);
+  if (!r.ok) throw new Error(`taux ${de}/${vers} indisponibles (${r.status})`);
+  const j = (await r.json()) as { rates?: Record<string, Record<string, number>> };
+  const connus = Object.entries(j.rates ?? {}).map(([d, v]) => [d, v[vers]] as const).sort();
+  if (!connus.length) throw new Error(`aucun taux ${de}/${vers}`);
+  const taux = new Map<string, number>();
+  let courant = connus[0][1];
+  for (let d = new Date(depuis); d <= new Date(jusqua); d.setUTCDate(d.getUTCDate() + 1)) {
+    const cle = d.toISOString().slice(0, 10);
+    const t = connus.find(([k]) => k === cle);
+    if (t) courant = t[1];
+    taux.set(cle, courant);
+  }
+  return taux;
+}
 export async function syncSpendMeta(
   admin: Admin, shopId: string, opts: { jours?: number } = {},
 ) {
@@ -148,11 +166,14 @@ export async function syncSpendMeta(
   const erreurs: string[] = [];
 
   for (const c of comptes ?? []) {
+    let taux: Map<string, number> | null = null;
     if (c.currency && shop?.currency && c.currency !== shop.currency) {
-      erreurs.push(
-        `${c.name} est en ${c.currency}, la boutique en ${shop.currency} : compte ignoré.`,
-      );
-      continue;
+      try {
+        taux = await tauxQuotidiens(c.currency, shop.currency, depuis, jusqua);
+      } catch (e) {
+        erreurs.push(`${c.name} (${c.currency}) : conversion en ${shop.currency} impossible, ${e instanceof Error ? e.message : e}`);
+        continue;
+      }
     }
     try {
       let url: string | null = null;
@@ -166,7 +187,8 @@ export async function syncSpendMeta(
       );
       for (;;) {
         for (const l of page.data ?? []) {
-          const v = Number(l.spend) || 0;
+          const brut = Number(l.spend) || 0;
+          const v = taux ? brut * (taux.get(l.date_start) ?? [...taux.values()].at(-1) ?? 1) : brut;
           parJour.set(l.date_start, (parJour.get(l.date_start) ?? 0) + v);
         }
         url = page.paging?.next ?? null;
