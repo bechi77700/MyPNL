@@ -5,6 +5,60 @@ type Admin = ReturnType<typeof createAdminClient>;
 
 export const META_API_VERSION = process.env.META_API_VERSION ?? "v21.0";
 
+
+// ─────────────────────────── OAuth Meta ───────────────────────────
+
+/** Le seul scope necessaire : lire les performances. Aucune ecriture. */
+export const META_SCOPES = "ads_read";
+
+export function urlAutorisationMeta(opts: {
+  clientId: string; redirectUri: string; state: string;
+}) {
+  const p = new URLSearchParams({
+    client_id: opts.clientId,
+    redirect_uri: opts.redirectUri,
+    state: opts.state,
+    scope: META_SCOPES,
+    response_type: "code",
+  });
+  return `https://www.facebook.com/${META_API_VERSION}/dialog/oauth?${p}`;
+}
+
+/**
+ * Echange le code contre un jeton longue duree (60 jours).
+ * Meta ne delivre pas de jeton perpetuel par ce chemin : on stocke la date
+ * d'expiration pour prevenir l'utilisateur avant la coupure.
+ */
+export async function echangerCodeMeta(opts: {
+  code: string; redirectUri: string;
+}): Promise<{ token: string; expire_le: string | null }> {
+  const clientId = process.env.META_APP_ID!;
+  const secret = process.env.META_APP_SECRET!;
+
+  const court = await graph<{ access_token?: string }>("oauth/access_token", "", {
+    client_id: clientId,
+    client_secret: secret,
+    redirect_uri: opts.redirectUri,
+    code: opts.code,
+  });
+  if (!court.access_token) throw new Error("Meta n'a pas renvoyé de jeton.");
+
+  const long = await graph<{ access_token?: string; expires_in?: number }>(
+    "oauth/access_token", "",
+    {
+      grant_type: "fb_exchange_token",
+      client_id: clientId,
+      client_secret: secret,
+      fb_exchange_token: court.access_token,
+    },
+  );
+  const token = long.access_token ?? court.access_token;
+  const expire_le = long.expires_in
+    ? new Date(Date.now() + long.expires_in * 1000).toISOString()
+    : null;
+  return { token, expire_le };
+}
+
 export type CompteMeta = {
   id: string; name: string; currency: string; status: number;
 };
@@ -12,7 +66,7 @@ export type CompteMeta = {
 async function graph<T>(chemin: string, token: string, params: Record<string, string> = {}) {
   const url = new URL(`https://graph.facebook.com/${META_API_VERSION}/${chemin}`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  url.searchParams.set("access_token", token);
+  if (token) url.searchParams.set("access_token", token);
   const r = await fetch(url);
   const j = (await r.json()) as { error?: { message: string } } & T;
   if (j.error) throw new Error(`Meta : ${j.error.message}`);
@@ -41,15 +95,27 @@ export async function chargerToken(admin: Admin, shopId: string): Promise<string
   return (JSON.parse(decrypt(data.creds_encrypted)) as { token: string }).token;
 }
 
-export async function enregistrerToken(admin: Admin, shopId: string, token: string) {
+export async function enregistrerToken(
+  admin: Admin, shopId: string, token: string, expire_le?: string | null,
+) {
   await admin.from("connectors").upsert(
     {
       shop_id: shopId, platform: "meta",
-      creds_encrypted: encrypt(JSON.stringify({ token })),
+      creds_encrypted: encrypt(JSON.stringify({ token, expire_le: expire_le ?? null })),
       status: "connected", last_error: null,
     },
     { onConflict: "shop_id,platform" },
   );
+}
+
+/** Date d'expiration du jeton Meta, pour prevenir avant la coupure. */
+export async function expirationToken(admin: Admin, shopId: string) {
+  const { data } = await admin
+    .from("connectors").select("creds_encrypted")
+    .eq("shop_id", shopId).eq("platform", "meta").maybeSingle();
+  if (!data?.creds_encrypted) return null;
+  const c = JSON.parse(decrypt(data.creds_encrypted)) as { expire_le?: string | null };
+  return c.expire_le ?? null;
 }
 
 /**

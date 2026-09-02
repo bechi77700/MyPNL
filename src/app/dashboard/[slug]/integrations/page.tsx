@@ -114,16 +114,28 @@ export default async function IntegrationsPage({
           )}
         </div>
 
-        <form action={connecterMeta.bind(null, slug)} className="mt-4 flex flex-col gap-2 sm:flex-row">
-          <Champ
-            name="token" required type="password"
-            placeholder={meta?.status === "connected" ? "Remplacer le jeton…" : "Jeton d'accès Meta"}
-            className="flex-1"
-          />
-          <Bouton type="submit" variante="discret">
-            {meta?.status === "connected" ? "Remplacer" : "Connecter"}
-          </Bouton>
-        </form>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <form action="/api/connect/meta/start" method="post">
+            <input type="hidden" name="slug" value={slug} />
+            <Bouton type="submit">
+              {meta?.status === "connected" ? "Reconnecter Meta" : "Connecter Meta"}
+            </Bouton>
+          </form>
+          <span className="text-xs text-faible">
+            Tu seras redirigé vers Facebook pour autoriser la lecture de tes
+            comptes publicitaires. Aucun droit d&apos;écriture n&apos;est demandé.
+          </span>
+        </div>
+
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs text-faible transition hover:text-doux">
+            Coller un jeton à la main
+          </summary>
+          <form action={connecterMeta.bind(null, slug)} className="mt-2 flex flex-col gap-2 sm:flex-row">
+            <Champ name="token" required type="password" placeholder="Jeton d'accès Meta" className="flex-1" />
+            <Bouton type="submit" variante="discret">Enregistrer</Bouton>
+          </form>
+        </details>
 
         {comptesMeta.length > 0 && (
           <div className="mt-5">
