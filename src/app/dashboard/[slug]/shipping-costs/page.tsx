@@ -45,6 +45,29 @@ export default async function ShippingPage({
   );
   const remplis = expediables.filter((s) => parSku.has(s.sku)).length;
 
+  // Une ligne par PRODUIT : les variantes (couleurs, fiches en doublon) partagent
+  // le meme tarif, comme dans les grilles des agents. La cle ignore la ponctuation
+  // pour fusionner "Marque - Produit" et "Marque Produit".
+  const cleProduit = (s: (typeof expediables)[number]) =>
+    (s.product_title ?? s.title ?? s.sku).toLowerCase().replace(/[^a-z0-9äöüß]+/g, "");
+  const groupes = new Map<string, (typeof expediables)>();
+  for (const s of expediables) {
+    const k = cleProduit(s);
+    groupes.set(k, [...(groupes.get(k) ?? []), s]);
+  }
+  const lignesProduits = [...groupes.values()].map((variantes, i) => {
+    const tarifs = variantes.map((v) => parSku.get(v.sku));
+    const std = new Set(tarifs.map((t) => (t ? Number(t.standard).toFixed(2) : "")));
+    const ups = new Set(tarifs.map((t) => (t ? Number(t.upsell).toFixed(2) : "")));
+    return {
+      i, tete: variantes[0], variantes,
+      commandes: variantes.reduce((a, v) => a + Number(v.orders_count), 0),
+      standard: std.size === 1 ? [...std][0] : null,
+      upsell: ups.size === 1 ? [...ups][0] : null,
+      mixte: std.size > 1 || ups.size > 1,
+    };
+  });
+
   return (
     <div className="px-7 py-8">
       <EnTetePage
@@ -99,7 +122,7 @@ export default async function ShippingPage({
       </div>
 
       <p className="mb-4 text-[13px] text-faible">
-        {remplis} / {expediables.length} produits renseignés pour {paysActif}
+        {remplis} / {expediables.length} variantes renseignées pour {paysActif}, regroupées en {lignesProduits.length} produits
       </p>
 
       <FormulaireSuivi
@@ -119,10 +142,11 @@ export default async function ShippingPage({
                 </tr>
               </thead>
               <tbody>
-                {expediables.map((s) => {
-                  const g = parSku.get(s.sku);
+                {lignesProduits.map((l) => {
+                  const s = l.tete;
+                  const cls = "chiffres w-24 rounded-[10px] bg-carte-haut px-2.5 py-1.5 text-right text-texte outline-none transition placeholder:text-faible focus:border-accent/60";
                   return (
-                    <tr key={s.sku} className="border-t border-bord transition-colors hover:bg-carte-haut/50">
+                    <tr key={l.i} className="border-t border-bord transition-colors hover:bg-carte-haut/50">
                       <td className="px-4 py-[9px]">
                         <div className="flex items-center gap-3">
                           {s.image_url ? (
@@ -132,29 +156,23 @@ export default async function ShippingPage({
                             <div className="size-9 shrink-0 rounded-full bg-carte-haut-haut" />
                           )}
                           <div className="min-w-0">
-                            <p className="truncate text-texte">{nomSku(s)}</p>
-                            {s.variant_title && (
-                              <p className="text-[11.5px] text-faible">{s.variant_title}</p>
-                            )}
+                            <p className="truncate text-texte">{s.product_title ?? nomSku(s)}</p>
+                            <p className="text-[11.5px] text-faible">
+                              {l.variantes.length > 1
+                                ? `${l.variantes.length} variantes, même tarif`
+                                : s.variant_title ?? "1 variante"}
+                              {l.mixte && <span className="ml-1.5 text-alerte">tarifs différents entre variantes, ressaisis pour unifier</span>}
+                            </p>
                           </div>
                         </div>
+                        <input type="hidden" name={`skus__grp__${l.i}`} value={l.variantes.map((v) => v.sku).join(",")} />
                       </td>
-                      <td className="chiffres px-3 py-[9px] text-right text-doux">{s.orders_count}</td>
+                      <td className="chiffres px-3 py-[9px] text-right text-doux">{l.commandes}</td>
                       <td className="px-3 py-[9px] text-right">
-                        <input
-                          type="number" step="0.01" min="0"
-                          name={`std__${s.sku}`} defaultValue={g?.standard ? Number(g.standard).toFixed(2) : ""}
-                          placeholder="0,00" lang="fr"
-                          className="chiffres w-24 rounded-[10px] bg-carte-haut px-2.5 py-1.5 text-right text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
-                        />
+                        <input type="number" step="0.01" min="0" name={`std__grp__${l.i}`} defaultValue={l.standard ?? ""} placeholder={l.mixte ? "variable" : "0,00"} lang="fr" className={cls} />
                       </td>
                       <td className="px-4 py-[9px] text-right">
-                        <input
-                          type="number" step="0.01" min="0"
-                          name={`ups__${s.sku}`} defaultValue={g?.upsell ? Number(g.upsell).toFixed(2) : ""}
-                          placeholder="0,00" lang="fr"
-                          className="chiffres w-24 rounded-[10px] bg-carte-haut px-2.5 py-1.5 text-right text-texte outline-none transition placeholder:text-faible focus:border-accent/60"
-                        />
+                        <input type="number" step="0.01" min="0" name={`ups__grp__${l.i}`} defaultValue={l.upsell ?? ""} placeholder={l.mixte ? "variable" : "0,00"} lang="fr" className={cls} />
                       </td>
                     </tr>
                   );

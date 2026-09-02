@@ -67,11 +67,16 @@ export async function enregistrerShipping(slug: string, form: FormData): Promise
   const lignes = [];
   for (const [cle] of form.entries()) {
     if (!cle.startsWith("std__")) continue;
-    const sku = cle.slice(5);
-    const standard = Number(form.get(`std__${sku}`)) || 0;
-    const upsell = Number(form.get(`ups__${sku}`)) || 0;
+    const id = cle.slice(5);
+    const standard = Number(form.get(`std__${id}`)) || 0;
+    const upsell = Number(form.get(`ups__${id}`)) || 0;
     if (standard === 0 && upsell === 0) continue;
-    lignes.push({ shop_id: shopId, sku, country: pays, standard, upsell, is_estimated: true });
+    // Ligne "produit" : un tarif pour toutes ses variantes. Sinon, un SKU seul.
+    const skus = id.startsWith("grp__")
+      ? String(form.get(`skus__${id}`) ?? "").split(",").filter(Boolean)
+      : [id];
+    for (const sku of skus)
+      lignes.push({ shop_id: shopId, sku, country: pays, standard, upsell, is_estimated: true });
   }
 
   if (lignes.length) {
