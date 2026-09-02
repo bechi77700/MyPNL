@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Logo } from "@/components/logo";
-import Nav from "./nav";
+import Nav, { NavMobile } from "./nav";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,8 @@ export default async function DashboardLayout({
   if (!boutique) notFound();
 
   return (
-    <div className="flex min-h-screen gap-0 bg-fond p-0 lg:p-2.5">
+    <div className="min-h-screen bg-fond lg:flex lg:gap-0 lg:p-2.5">
+      <NavMobile slug={slug} boutique={boutique.name} />
       <aside className="hidden w-[228px] shrink-0 flex-col px-3 py-4 lg:flex">
         <div className="px-2">
           <Logo />
