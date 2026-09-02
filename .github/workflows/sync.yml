@@ -1,0 +1,26 @@
+name: Synchronisation horaire
+
+# Les crons du plan gratuit Vercel sont limités à une exécution par jour
+# et sautent des créneaux : GitHub Actions est fiable et gratuit.
+on:
+  schedule:
+    - cron: "7 * * * *"   # 7 min après chaque heure, hors des pics
+  workflow_dispatch:       # déclenchement manuel depuis l'onglet Actions
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Appeler l'endpoint de synchronisation
+        run: |
+          reponse=$(curl -sS -w "\n%{http_code}" -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            --max-time 120 \
+            "https://mypnl-tau.vercel.app/api/cron/sync")
+          corps=$(echo "$reponse" | sed '$d')
+          code=$(echo "$reponse" | tail -1)
+          echo "$corps"
+          if [ "$code" != "200" ]; then
+            echo "::error::La synchronisation a répondu $code"
+            exit 1
+          fi
