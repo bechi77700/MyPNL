@@ -106,6 +106,8 @@ export async function enregistrerToken(
     {
       shop_id: shopId, platform: "meta",
       creds_encrypted: encrypt(JSON.stringify({ token, expire_le: expire_le ?? null })),
+      // Aussi en colonne : l'interface doit pouvoir alerter sans dechiffrer.
+      expires_at: expire_le ?? null,
       status: "connected", last_error: null,
     },
     { onConflict: "shop_id,platform" },

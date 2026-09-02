@@ -40,6 +40,7 @@ export default async function IntegrationsPage({
   type Etat = {
     platform: string; status: string | null;
     last_sync_at: string | null; last_error: string | null;
+    expires_at: string | null; jours_restants: number | null;
   };
   const listeEtats = (etats ?? []) as Etat[];
   const shopify = listeEtats.find((e) => e.platform === "shopify");
@@ -105,6 +106,16 @@ export default async function IntegrationsPage({
                 <> Total importé : {Math.round(parPlateforme.get("meta")!).toLocaleString("fr-FR")} {devise}.</>
               )}
             </p>
+            {meta?.expires_at && (
+              <p className={`mt-1 text-sm ${
+                (meta.jours_restants ?? 99) <= 0 ? "text-negatif"
+                : (meta.jours_restants ?? 99) <= 10 ? "text-alerte" : "text-faible"
+              }`}>
+                {(meta.jours_restants ?? 0) <= 0
+                  ? "Jeton expiré — reconnecte Meta pour reprendre la synchro."
+                  : `Jeton valable encore ${meta.jours_restants} jours (jusqu'au ${new Date(meta.expires_at).toLocaleDateString("fr-FR")}).`}
+              </p>
+            )}
             {meta?.last_error && <p className="mt-1 text-sm text-negatif">{meta.last_error}</p>}
           </div>
           {meta?.status === "connected" && (

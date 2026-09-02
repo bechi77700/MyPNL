@@ -8,6 +8,7 @@ import {
 import SelecteurPeriode from "@/components/periode";
 import { BarreRepartition, Colonnes, Courbe } from "@/components/charts";
 import { Carte } from "@/components/ui";
+import AlerteConnecteur, { type Renouvellement } from "@/components/alerte-connecteur";
 
 export const dynamic = "force-dynamic";
 
@@ -44,11 +45,12 @@ export default async function Dashboard({
   const periode = resoudrePeriode(boutique!.timezone, sp);
   const avant = periodePrecedente(periode.du, periode.au);
 
-  const [{ data: actuel }, { data: precedent }, { data: serie }, skus] = await Promise.all([
+  const [{ data: actuel }, { data: precedent }, { data: serie }, skus, { data: renouv }] = await Promise.all([
     supabase.rpc("pnl_summary", { p_shop: shopId, p_from: periode.du, p_to: periode.au }),
     supabase.rpc("pnl_summary", { p_shop: shopId, p_from: avant.du, p_to: avant.au }),
     supabase.rpc("pnl_series", { p_shop: shopId, p_from: periode.du, p_to: periode.au, p_grain: "day" }),
     chargerSkus(shopId, false),
+    supabase.rpc("connecteurs_a_renouveler", { p_shop: shopId, p_seuil_jours: 10 }),
   ]);
 
   const a = (actuel?.[0] ?? {}) as Partial<Pnl>;
@@ -93,6 +95,8 @@ export default async function Dashboard({
       <div className="mb-6">
         <SelecteurPeriode actif={periode.preset} libelle={periode.libelle} />
       </div>
+
+      <AlerteConnecteur renouvellements={(renouv ?? []) as Renouvellement[]} slug={slug} />
 
       {sansCout > 0 && (
         <Carte className="mb-4 border-alerte/30 bg-alerte/5 px-5 py-3.5">
