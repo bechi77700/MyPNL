@@ -301,6 +301,7 @@ export async function syncProduits(admin: Admin, creds: Creds, shopId: string) {
 
 type TransactionSolde = {
   fee: string; amount: string; net: string; processed_at: string; type: string;
+  source_order_id: number | null;
 };
 
 /**
@@ -312,6 +313,7 @@ export async function syncFrais(
   admin: Admin, creds: Creds, shopId: string, timezone: string, depuis?: string,
 ) {
   const parJour = new Map<string, number>();
+  const parCommande = new Map<string, number>();
   const filtres = new URLSearchParams({ limit: "250" });
   if (depuis) filtres.set("processed_at_min", depuis);
 
@@ -319,9 +321,28 @@ export async function syncFrais(
     creds, `shopify_payments/balance/transactions.json?${filtres}`, "transactions",
   )) {
     for (const t of lot) {
+      const frais = Math.abs(nombre(t.fee));
       const jour = jourLocal(t.processed_at, timezone);
-      parJour.set(jour, (parJour.get(jour) ?? 0) + Math.abs(nombre(t.fee)));
+      parJour.set(jour, (parJour.get(jour) ?? 0) + frais);
+      // Shopify rattache la transaction a sa commande : on peut donc
+      // calculer un profit par commande plutot qu'une repartition au prorata.
+      if (t.source_order_id) {
+        const id = String(t.source_order_id);
+        parCommande.set(id, (parCommande.get(id) ?? 0) + frais);
+      }
     }
+  }
+
+  // Report des frais sur les commandes concernees.
+  const ids = [...parCommande.keys()];
+  for (let i = 0; i < ids.length; i += 200) {
+    await Promise.all(
+      ids.slice(i, i + 200).map((id) =>
+        admin.from("orders")
+          .update({ transaction_fee: parCommande.get(id) })
+          .eq("shop_id", shopId).eq("external_id", id),
+      ),
+    );
   }
 
   const lignes = [...parJour].map(([date, fees]) => ({
