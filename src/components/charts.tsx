@@ -45,7 +45,8 @@ const libelleSelon = (g: Grain) => g === "month" ? moisCourt : g === "hour" ? he
 export const SERIES = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181"];
 const SURFACE = "#1a1a1a";
 const GRILLE = "#242424";
-const ACCENT = "#2dca02";
+const ACCENT = "#3b7bff";
+const POSITIF = "#2dca02";
 const NEGATIF = "#ff5f56";
 
 function useLargeur() {
@@ -189,10 +190,12 @@ export function Courbe({
 
 /** Colonnes. Barres fines, sommet arrondi, ecart de 2px entre voisines. */
 export function Colonnes({
-  points, hauteur = 180, unite = "nombre", devise = "USD", grain = "day",
+  points, hauteur = 180, unite = "nombre", devise = "USD", grain = "day", semantique,
 }: {
   points: Point[]; hauteur?: number;
   unite?: Unite; devise?: string; grain?: Grain;
+  /** true = vert au-dessus de zero, rouge en dessous (profit) ; sinon couleur de marque */
+  semantique?: boolean;
 }) {
   const format = faireFormat(unite, devise);
   const formatAxe = faireFormatAxe(unite, devise);
@@ -230,7 +233,8 @@ export function Colonnes({
           <g transform={`translate(${marge.g},${marge.h})`}>
             <defs>
               <linearGradient id="barre-pos" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stopColor="#4de621" /><stop offset="1" stopColor={ACCENT} />
+                <stop offset="0" stopColor={semantique ? "#4de621" : "#6ea0ff"} />
+                <stop offset="1" stopColor={semantique ? POSITIF : ACCENT} />
               </linearGradient>
               <linearGradient id="barre-neg" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0" stopColor={NEGATIF} /><stop offset="1" stopColor="#c9403a" />

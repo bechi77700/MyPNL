@@ -86,7 +86,7 @@ export default async function ShippingPage({
             href={`/dashboard/${slug}/shipping-costs?pays=${p.country}`}
             className={`rounded-full px-3.5 py-1.5 text-[13px] transition ${
               p.country === paysActif
-                ? "bg-accent font-medium text-[#08210b]"
+                ? "bg-accent font-medium text-white"
                 : "border border-bord text-doux hover:border-bord-fort hover:text-texte"
             }`}
           >

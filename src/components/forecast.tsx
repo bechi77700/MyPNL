@@ -131,7 +131,7 @@ function Curseur({
       <input
         type="range" min={min} max={max} value={valeur}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="mt-2.5 w-full accent-[#34d399]"
+        className="mt-2.5 w-full accent-[#3b7bff]"
       />
     </label>
   );

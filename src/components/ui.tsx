@@ -108,7 +108,7 @@ export function Pastille({
 }) {
   const styles = {
     neutre: "border-bord bg-carte-haut text-faible",
-    vert: "border-accent/30 bg-accent/10 text-accent",
+    vert: "border-positif/30 bg-positif/10 text-positif",
     ambre: "border-alerte/30 bg-alerte/10 text-alerte",
     rouge: "border-negatif/30 bg-negatif/10 text-negatif",
     bleu: "border-s1/30 bg-s1/10 text-s1",
@@ -130,7 +130,7 @@ export function Delta({
     <span
       className={`chiffres inline-flex items-center gap-0.5 rounded-[5px] px-1.5 py-px font-medium ${
         taille === "md" ? "text-[12px]" : "text-[10.5px]"
-      } ${positif ? "bg-accent/10 text-accent" : "bg-negatif/10 text-negatif"}`}
+      } ${positif ? "bg-positif/10 text-positif" : "bg-negatif/10 text-negatif"}`}
     >
       <span className="text-[0.85em]">{valeur >= 0 ? "▲" : "▼"}</span>
       {Math.abs(valeur).toFixed(1).replace(".", ",")} %
@@ -142,10 +142,8 @@ export function Message({ ok, erreur }: { ok?: string; erreur?: string }) {
   if (!ok && !erreur) return null;
   return (
     <div
-      className={`mb-4 rounded-[9px] border px-4 py-2.5 text-[13px] ${
-        erreur
-          ? "border-negatif/30 bg-negatif/[0.07] text-negatif"
-          : "border-accent/30 bg-accent/[0.07] text-accent"
+      className={`mb-4 rounded-[12px] px-4 py-2.5 text-[13px] ${
+        erreur ? "bg-negatif/[0.1] text-negatif" : "bg-positif/[0.1] text-positif"
       }`}
     >
       {erreur ?? ok}

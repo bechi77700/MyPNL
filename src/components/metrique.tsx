@@ -28,7 +28,8 @@ const TEINTES = {
   vert:   "text-s3 bg-s3/12 shadow-[0_0_18px_-4px_rgb(25_158_112/0.55)]",
   jaune:  "text-s4 bg-s4/12 shadow-[0_0_18px_-4px_rgb(201_133_0/0.55)]",
   rose:   "text-s5 bg-s5/12 shadow-[0_0_18px_-4px_rgb(213_81_129/0.55)]",
-  accent: "text-accent bg-accent/12 shadow-[0_0_18px_-4px_rgb(45_202_2/0.55)]",
+  accent: "text-accent bg-accent/12 shadow-[0_0_18px_-4px_rgb(59_123_255/0.55)]",
+  positif: "text-positif bg-positif/12 shadow-[0_0_18px_-4px_rgb(45_202_2/0.55)]",
   neutre: "text-doux bg-carte-haut",
 } as const;
 

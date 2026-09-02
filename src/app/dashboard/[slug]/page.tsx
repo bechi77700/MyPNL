@@ -162,7 +162,7 @@ export default async function Dashboard({
               <div>
                 <p className="surtitre">Marge nette</p>
                 <p className={`heros mt-1.5 text-[26px] font-semibold ${
-                  caHt <= 0 ? "text-faible" : ebitda < 0 ? "text-negatif" : "text-accent"
+                  caHt <= 0 ? "text-faible" : ebitda < 0 ? "text-negatif" : "text-positif"
                 }`}>
                   {caHt > 0 ? formaterPourcent((ebitda / caHt) * 100) : "—"}
                 </p>
@@ -195,9 +195,9 @@ export default async function Dashboard({
               <MetriqueLigne icone="frais" teinte="neutre" label="Frais + charges" valeur={m(n(a.transaction_fees) + n(a.opex) + n(a.owner_salary))} />
             </Groupe>
             <Groupe titre="Résultat">
-              <MetriqueLigne icone="marge" teinte="accent" label="Marge brute" valeur={m(n(a.gross_margin))} delta={evo(n(a.gross_margin), n(b.gross_margin))} />
-              <MetriqueLigne icone="profit" teinte="accent" label="Contribution" valeur={m(n(a.contribution))} delta={evo(n(a.contribution), n(b.contribution))} />
-              <MetriqueLigne icone="cible" teinte={roas !== null && seuil !== null ? (roas >= seuil ? "accent" : "rose") : "neutre"}
+              <MetriqueLigne icone="marge" teinte="positif" label="Marge brute" valeur={m(n(a.gross_margin))} delta={evo(n(a.gross_margin), n(b.gross_margin))} />
+              <MetriqueLigne icone="profit" teinte="positif" label="Contribution" valeur={m(n(a.contribution))} delta={evo(n(a.contribution), n(b.contribution))} />
+              <MetriqueLigne icone="cible" teinte={roas !== null && seuil !== null ? (roas >= seuil ? "positif" : "rose") : "neutre"}
                 label="ROAS blended" valeur={roas !== null ? roas.toFixed(2) : "—"} />
             </Groupe>
           </div>
@@ -244,7 +244,7 @@ export default async function Dashboard({
             <div className="px-5 py-5">
               <Colonnes
                 points={jours.map((j) => ({ x: j.bucket, y: Number(j.ebitda) }))}
-                unite="monnaie" devise={devise} hauteur={190}
+                unite="monnaie" devise={devise} hauteur={190} semantique
               />
             </div>
           </Section>
@@ -282,14 +282,14 @@ export default async function Dashboard({
             note={`${formaterNombre(n(a.add_to_carts))} ajouts`} />
           <Metrique icone="cible" teinte="vert" label="Taux de conversion"
             valeur={n(a.sessions) ? formaterPourcent((n(a.orders_count) / n(a.sessions)) * 100) : "—"} />
-          <Metrique icone="profit" teinte="accent" label="Revenu par session"
+          <Metrique icone="profit" teinte="bleu" label="Revenu par session"
             valeur={n(a.sessions) ? m(n(a.gross_sales) / n(a.sessions)) : "—"} />
           <Metrique icone="clients" teinte="rose" label="Nouveaux clients"
             valeur={formaterNombre(n(a.new_customers))}
             delta={evo(n(a.new_customers), n(b.new_customers))} />
           <Metrique icone="articles" teinte="orange" label="Articles vendus" valeur={formaterNombre(n(a.units))} />
           <Metrique icone="cible"
-            teinte={roas !== null && seuil !== null ? (roas >= seuil ? "accent" : "rose") : "neutre"}
+            teinte={roas !== null && seuil !== null ? (roas >= seuil ? "positif" : "rose") : "neutre"}
             label="ROAS blended"
             valeur={roas !== null ? roas.toFixed(2) : "—"}
             note={roas !== null && seuil !== null

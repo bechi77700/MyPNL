@@ -25,7 +25,7 @@ export default function SelecteurPeriode({
           href={lien(p)}
           className={`rounded-[7px] px-2.5 py-[6px] text-[12.5px] transition-colors ${
             p === actif
-              ? "bg-accent font-medium text-[#08210b]"
+              ? "bg-accent font-medium text-white"
               : "border border-bord bg-carte text-doux hover:border-bord-fort hover:text-texte"
           }`}
         >

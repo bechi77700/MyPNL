@@ -64,7 +64,7 @@ export default async function TaxesPage({
               >
                 <input
                   type="radio" name="mode" value={v} defaultChecked={mode === v}
-                  className="mt-0.5 size-4 shrink-0 accent-[#34d399]"
+                  className="mt-0.5 size-4 shrink-0 accent-[#3b7bff]"
                 />
                 <span className="min-w-0">
                   <span className="block text-[13px] text-texte">{titre}</span>

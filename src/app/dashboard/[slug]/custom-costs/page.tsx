@@ -113,7 +113,7 @@ export default async function ChargesPage({
         </Carte>
       ) : (
         <Carte className="relative overflow-hidden px-6 py-10 text-center">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(420px_140px_at_50%_0%,rgb(45_202_2/0.12),transparent_70%)]" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(420px_140px_at_50%_0%,rgb(59_123_255/0.12),transparent_70%)]" />
           <p className="text-[14px] font-medium text-texte">Aucune charge enregistrée</p>
           <p className="mx-auto mt-1.5 max-w-md text-[13px] text-faible">
             Tant que tes charges ne sont pas saisies, le profit net est surévalué.

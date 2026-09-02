@@ -101,7 +101,7 @@ export default async function ProduitsPage({
                       <input
                         type="checkbox" name={`nolivraison__${s.sku}`}
                         defaultChecked={s.exclude_from_shipping}
-                        className="size-4 accent-[#34d399]"
+                        className="size-4 accent-[#3b7bff]"
                       />
                     </td>
                   </tr>
