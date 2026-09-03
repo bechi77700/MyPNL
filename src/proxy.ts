@@ -35,11 +35,20 @@ export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const needsAuth = PROTECTED.some((p) => path.startsWith(p));
 
+  // Toute redirection doit emporter les cookies de session rafraichis par
+  // getUser() : sinon le nouveau refresh token est perdu et la session
+  // suivante est refusee -> deconnexion a l'ouverture de l'app.
+  const rediriger = (url: URL) => {
+    const r = NextResponse.redirect(url);
+    for (const c of response.cookies.getAll()) r.cookies.set(c);
+    return r;
+  };
+
   if (!user && needsAuth) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("suite", path);
-    return NextResponse.redirect(url);
+    return rediriger(url);
   }
 
   // Boutique par defaut : la derniere ouverte (cookie), sinon Looma.
@@ -50,7 +59,7 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = `/dashboard/${derniere}`;
     url.search = "";
-    return NextResponse.redirect(url);
+    return rediriger(url);
   };
 
   if (user && path === "/login") return versBoutique();
