@@ -46,7 +46,7 @@ export default async function PnlPage({
   params, searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ p?: string; du?: string; au?: string; grain?: string }>;
+  searchParams: Promise<{ p?: string; du?: string; au?: string; t?: string; grain?: string }>;
 }) {
   const { slug } = await params;
   const sp = await searchParams;
@@ -91,7 +91,7 @@ export default async function PnlPage({
     : Math.floor(Number(b.slice(5, 7)) / 3.01) === Math.floor(Number(auj.slice(5, 7)) / 3.01) && b.slice(0, 4) === auj.slice(0, 4);
   const lienExport = () => {
     const q = new URLSearchParams({ slug, grain });
-    if (sp.p) q.set("p", sp.p); if (sp.du) q.set("du", sp.du); if (sp.au) q.set("au", sp.au);
+    if (sp.p) q.set("p", sp.p); if (sp.du) q.set("du", sp.du); if (sp.au) q.set("au", sp.au); if (sp.t) q.set("t", sp.t);
     return `/api/export/pnl?${q}`;
   };
 
@@ -100,6 +100,7 @@ export default async function PnlPage({
     if (sp.p) q.set("p", sp.p);
     if (sp.du) q.set("du", sp.du);
     if (sp.au) q.set("au", sp.au);
+    if (sp.t) q.set("t", sp.t);
     q.set("grain", g);
     return `/dashboard/${slug}/pnl?${q}`;
   };

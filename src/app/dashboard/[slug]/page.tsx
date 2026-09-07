@@ -41,7 +41,7 @@ export default async function Dashboard({
   params, searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ p?: string; du?: string; au?: string }>;
+  searchParams: Promise<{ p?: string; du?: string; au?: string; t?: string }>;
 }) {
   const { slug } = await params;
   const sp = await searchParams;

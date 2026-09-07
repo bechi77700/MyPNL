@@ -23,7 +23,7 @@ export default async function OrdersPage({
   params, searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ p?: string; du?: string; au?: string; page?: string; q?: string }>;
+  searchParams: Promise<{ p?: string; du?: string; au?: string; t?: string; page?: string; q?: string }>;
 }) {
   const { slug } = await params;
   const sp = await searchParams;
@@ -80,7 +80,7 @@ export default async function OrdersPage({
         derniereSynchro={(conn?.last_sync_at as string | null) ?? null}
       />
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <a href={`/api/export/orders?${new URLSearchParams({ slug, ...(sp.p ? { p: sp.p } : {}), ...(sp.du ? { du: sp.du } : {}), ...(sp.au ? { au: sp.au } : {}) })}`}>
+        <a href={`/api/export/orders?${new URLSearchParams({ slug, ...(sp.p ? { p: sp.p } : {}), ...(sp.du ? { du: sp.du } : {}), ...(sp.au ? { au: sp.au } : {}), ...(sp.t ? { t: sp.t } : {}) })}`}>
           <Bouton variante="discret" type="button">
             <svg width="13" height="13" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M9 2.5v9M5.5 8 9 11.5 12.5 8M3 13v2.5h12V13" /></svg>
             Exporter CSV
