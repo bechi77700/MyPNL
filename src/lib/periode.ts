@@ -1,17 +1,45 @@
 /** Gestion des periodes, toujours dans le fuseau de la boutique. */
 
 export type Preset =
-  | "aujourdhui" | "hier" | "7j" | "30j" | "90j" | "annee" | "tout" | "perso";
+  | "aujourdhui" | "hier" | "7j" | "30j" | "mois" | "mois-1" | "90j"
+  | "trimestre" | "annee" | "tout" | "perso";
 
 export const PRESETS: [Preset, string][] = [
   ["aujourdhui", "Aujourd'hui"],
   ["hier", "Hier"],
   ["7j", "7 jours"],
   ["30j", "30 jours"],
+  ["mois", "Ce mois-ci"],
+  ["mois-1", "Mois dernier"],
   ["90j", "90 jours"],
   ["annee", "Cette année"],
   ["tout", "Tout"],
 ];
+
+const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+const dernierJourDuMois = (annee: number, mois1a12: number) =>
+  new Date(Date.UTC(annee, mois1a12, 0)).toISOString().slice(0, 10);
+
+/** Bornes d'un trimestre "2026-Q3" -> 1er juillet / 30 septembre. */
+export function bornesTrimestre(cle: string) {
+  const m = cle.match(/^(\d{4})-Q([1-4])$/);
+  if (!m) return null;
+  const annee = Number(m[1]), q = Number(m[2]);
+  const debut = `${annee}-${String((q - 1) * 3 + 1).padStart(2, "0")}-01`;
+  return { du: debut, au: dernierJourDuMois(annee, q * 3), libelle: `T${q} ${annee}` };
+}
+
+/** Les 8 derniers trimestres (le courant en premier), pour le menu. */
+export function trimestresRecents(auj: string, n = 8) {
+  let annee = Number(auj.slice(0, 4));
+  let q = Math.floor((Number(auj.slice(5, 7)) - 1) / 3) + 1;
+  const liste: { cle: string; libelle: string }[] = [];
+  for (let i = 0; i < n; i++) {
+    liste.push({ cle: `${annee}-Q${q}`, libelle: `T${q} ${annee}` });
+    q--; if (q === 0) { q = 4; annee--; }
+  }
+  return liste;
+}
 
 /** Date du jour dans le fuseau de la boutique, au format AAAA-MM-JJ. */
 export function aujourdhui(timezone: string): string {
@@ -26,7 +54,7 @@ const decale = (iso: string, n: number) =>
 
 export function resoudrePeriode(
   timezone: string,
-  params: { p?: string; du?: string; au?: string },
+  params: { p?: string; du?: string; au?: string; t?: string },
 ): { preset: Preset; du: string; au: string; libelle: string } {
   const auj = aujourdhui(timezone);
 
@@ -44,6 +72,20 @@ export function resoudrePeriode(
     }
     case "7j":
       return { preset: p, du: decale(auj, -6), au: auj, libelle: "7 derniers jours" };
+    case "mois": {
+      const [a, m] = [Number(auj.slice(0, 4)), Number(auj.slice(5, 7))];
+      return { preset: p, du: `${auj.slice(0, 7)}-01`, au: auj, libelle: `${MOIS[m - 1].charAt(0).toUpperCase() + MOIS[m - 1].slice(1)} ${a}, en cours` };
+    }
+    case "mois-1": {
+      let a = Number(auj.slice(0, 4)), m = Number(auj.slice(5, 7)) - 1;
+      if (m === 0) { m = 12; a--; }
+      return { preset: p, du: `${a}-${String(m).padStart(2, "0")}-01`, au: dernierJourDuMois(a, m), libelle: `${MOIS[m - 1].charAt(0).toUpperCase() + MOIS[m - 1].slice(1)} ${a}` };
+    }
+    case "trimestre": {
+      const b = bornesTrimestre(params.t ?? "") ?? bornesTrimestre(trimestresRecents(auj, 1)[0].cle)!;
+      // Trimestre en cours : on s'arrete a aujourd'hui, pas au 30 du mois.
+      return { preset: p, du: b.du, au: b.au > auj ? auj : b.au, libelle: b.libelle };
+    }
     case "90j":
       return { preset: p, du: decale(auj, -89), au: auj, libelle: "90 derniers jours" };
     case "annee":

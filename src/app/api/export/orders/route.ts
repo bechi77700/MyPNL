@@ -18,6 +18,7 @@ export async function GET(request: Request) {
     p: url.searchParams.get("p") ?? undefined,
     du: url.searchParams.get("du") ?? undefined,
     au: url.searchParams.get("au") ?? undefined,
+    t: url.searchParams.get("t") ?? undefined,
   });
 
   // Tout, par pages de 1000 : le rapport a l'ecran est pagine, l'export non.

@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { PRESETS, type Preset } from "@/lib/periode";
+import { PRESETS, trimestresRecents, type Preset } from "@/lib/periode";
 import { actualiser } from "@/lib/actions/actualiser";
 
 /**
@@ -24,6 +24,9 @@ export default function BarreRapport({
   const [enCours, demarrer] = useTransition();
   const [navigue, demarrerNav] = useTransition();
   const [cible, setCible] = useState<string | null>(null);
+  const [menuTrim, setMenuTrim] = useState(false);
+  const trimestres = trimestresRecents(new Date().toISOString().slice(0, 10));
+  const trimActif = params.get("t") ?? trimestres[0].cle;
   const [retour, setRetour] = useState<{ ok: boolean; message: string } | null>(null);
 
   // Des le clic : la pastille visee s'allume et une barre de progression
@@ -33,6 +36,7 @@ export default function BarreRapport({
     demarrerNav(() => router.push(url));
   };
   useEffect(() => { if (!navigue) setCible(null); }, [navigue]);
+  useEffect(() => { setMenuTrim(false); }, [chemin, params]);
   useEffect(() => {
     document.querySelector("main")?.classList.toggle("en-attente", navigue);
     return () => document.querySelector("main")?.classList.remove("en-attente");
@@ -51,7 +55,11 @@ export default function BarreRapport({
     return q;
   };
   const lienPreset = (p: Preset) => {
-    const q = conserver(); q.set("p", p); q.delete("du"); q.delete("au");
+    const q = conserver(); q.set("p", p); q.delete("du"); q.delete("au"); q.delete("t");
+    return `${chemin}?${q}`;
+  };
+  const lienTrimestre = (cle: string) => {
+    const q = conserver(); q.set("p", "trimestre"); q.set("t", cle); q.delete("du"); q.delete("au");
     return `${chemin}?${q}`;
   };
   const appliquer = () => {
@@ -97,6 +105,32 @@ export default function BarreRapport({
             </button>
           );
         })}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setMenuTrim((o) => !o)}
+            className={(cible === "trimestre" || (cible === null && actif === "trimestre")) ? selection : inactif}
+            aria-haspopup="menu" aria-expanded={menuTrim}
+          >
+            {actif === "trimestre" ? (trimestres.find((t) => t.cle === trimActif)?.libelle ?? "Trimestre") : "Trimestre"}
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6l4 4 4-4" /></svg>
+          </button>
+          {menuTrim && (
+            <div role="menu" className="verre apparait absolute left-0 top-[calc(100%+6px)] z-30 min-w-[150px] rounded-[12px] p-1.5 shadow-[0_16px_40px_rgb(0_0_0/0.5)]">
+              {trimestres.map((t) => {
+                const estActif = actif === "trimestre" && t.cle === trimActif;
+                return (
+                  <button key={t.cle} type="button" role="menuitem"
+                    onClick={() => { setMenuTrim(false); aller(lienTrimestre(t.cle), "trimestre"); }}
+                    className={`flex w-full items-center justify-between rounded-[9px] px-3 py-1.5 text-left text-[12.5px] ${estActif ? "bg-accent/12 text-texte" : "text-doux hover:bg-carte-haut hover:text-texte"}`}>
+                    {t.libelle}
+                    {estActif && <span className="size-1.5 rounded-full bg-accent" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => setOuvert((o) => !o)}

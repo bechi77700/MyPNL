@@ -30,6 +30,7 @@ export async function GET(request: Request) {
     p: url.searchParams.get("p") ?? undefined,
     du: url.searchParams.get("du") ?? undefined,
     au: url.searchParams.get("au") ?? undefined,
+    t: url.searchParams.get("t") ?? undefined,
   });
   const { data } = await supabase.rpc("pnl_series", {
     p_shop: shop.id, p_from: periode.du, p_to: periode.au, p_grain: grain,
