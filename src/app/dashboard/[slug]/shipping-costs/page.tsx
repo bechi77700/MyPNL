@@ -4,6 +4,7 @@ import { chargerSkus, nomSku } from "@/lib/skus";
 import { enregistrerShipping } from "@/lib/actions/couts";
 import { Carte, EnTetePage, Message } from "@/components/ui";
 import FormulaireSuivi from "@/components/formulaire-suivi";
+import { ChampAPartirDu, HistoriquePaliers, montant } from "@/components/paliers";
 
 export const dynamic = "force-dynamic";
 
@@ -35,11 +36,15 @@ export default async function ShippingPage({
   // Uniquement les produits actifs qui s'expedient : le reste ne sert a rien ici.
   const expediables = skus.actifs.filter((s) => !s.exclude_from_shipping);
 
-  const { data: grille } = await supabase
-    .from("shipping_costs")
-    .select("sku, standard, upsell")
-    .eq("shop_id", shopId)
-    .eq("country", paysActif);
+  const [{ data: grille }, { data: paliersBruts }] = await Promise.all([
+    supabase.from("shipping_costs_current").select("sku, standard, upsell").eq("shop_id", shopId).eq("country", paysActif),
+    supabase.from("shipping_costs").select("sku, standard, upsell, effective_from").eq("shop_id", shopId).eq("country", paysActif),
+  ]);
+  const paliers = (paliersBruts ?? []).map((p) => ({
+    sku: p.sku as string, effective_from: p.effective_from as string,
+    valeurs: `${montant(Number(p.standard), devise)} / ${montant(Number(p.upsell), devise)}`,
+  }));
+  const titres = new Map(expediables.map((s) => [s.sku, `${s.product_title ?? nomSku(s)}${s.variant_title ? " · " + s.variant_title : ""}`]));
   const parSku = new Map(
     (grille ?? []).map((g) => [g.sku as string, g as { standard: number; upsell: number }]),
   );
@@ -130,6 +135,7 @@ export default async function ShippingPage({
         libelleBouton={`Enregistrer la grille ${paysActif}`}
         champsCaches={<input type="hidden" name="pays" value={paysActif} />}
       >
+        <ChampAPartirDu note={`Vaut pour la grille ${paysActif} uniquement. Format : standard / upsell.`} />
         <Carte className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
@@ -181,6 +187,7 @@ export default async function ShippingPage({
             </table>
           </div>
         </Carte>
+        <HistoriquePaliers paliers={paliers} titres={titres} devise={devise} titre={`Historique des tarifs ${paysActif}`} />
       </FormulaireSuivi>
     </div>
   );

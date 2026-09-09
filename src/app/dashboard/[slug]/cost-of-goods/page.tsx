@@ -4,6 +4,7 @@ import { chargerSkus, nomSku, sansCout, type Sku } from "@/lib/skus";
 import { enregistrerProduits } from "@/lib/actions/couts";
 import { Carte, EnTetePage, Message, Pastille } from "@/components/ui";
 import FormulaireSuivi from "@/components/formulaire-suivi";
+import { ChampAPartirDu, HistoriquePaliers, montant } from "@/components/paliers";
 import { formaterMontant } from "@/lib/periode";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,10 @@ export default async function ProduitsPage({
   const { data: boutique } = await supabase
     .from("shops").select("id, currency").eq("slug", slug).maybeSingle();
   const { visibles, actifs, inactifsVendus } = await chargerSkus(boutique!.id, tout);
+  const { data: paliersBruts } = await supabase
+    .from("product_costs").select("sku, cost, effective_from").eq("shop_id", boutique!.id);
+  const paliers = (paliersBruts ?? []).map((p) => ({ sku: p.sku as string, effective_from: p.effective_from as string, valeurs: montant(Number(p.cost), devise) }));
+  const titres = new Map(visibles.map((s) => [s.sku, nomSku(s)]));
   const devise = boutique!.currency as string;
   const manquants = sansCout(visibles).length;
 
@@ -46,6 +51,7 @@ export default async function ProduitsPage({
         libelleBouton="Enregistrer les coûts"
         champsCaches={<input type="hidden" name="voir" value={voir ?? ""} />}
       >
+        <ChampAPartirDu note="Seuls les coûts qui changent créent un palier." />
         <Carte className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
@@ -123,6 +129,7 @@ export default async function ProduitsPage({
             </Link>
           )}
         </div>
+        <HistoriquePaliers paliers={paliers} titres={titres} devise={devise} />
       </FormulaireSuivi>
 
       <p className="mt-6 max-w-2xl text-[11.5px] leading-relaxed text-faible">

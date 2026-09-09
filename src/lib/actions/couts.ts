@@ -43,9 +43,20 @@ export async function enregistrerProduits(slug: string, form: FormData): Promise
     }
   }
 
-  if (couts.length) {
+  // Date d'effet : vide = on corrige le palier en vigueur ; remplie = nouveau
+  // palier a cette date, le passe garde l'ancien tarif.
+  const aPartirDu = String(form.get("a_partir_du") ?? "").trim() || null;
+  if (aPartirDu && !/^\d{4}-\d{2}-\d{2}$/.test(aPartirDu))
+    retour("cost-of-goods", slug, "erreur", "Date « à partir du » invalide.");
+  const { data: enVigueur } = await supabase
+    .from("product_costs_current").select("sku, cost, effective_from").eq("shop_id", shopId);
+  const courant = new Map((enVigueur ?? []).map((c) => [c.sku as string, { cost: Number(c.cost), from: c.effective_from as string }]));
+  const lignes = couts
+    .filter((c) => !aPartirDu || (courant.get(c.sku)?.cost ?? 0) !== c.cost) // nouveau palier seulement si ca change
+    .map((c) => ({ ...c, effective_from: aPartirDu ?? courant.get(c.sku)?.from ?? "2000-01-01", source: "manual" }));
+  if (lignes.length) {
     const { error } = await supabase
-      .from("product_costs").upsert(couts, { onConflict: "shop_id,sku" });
+      .from("product_costs").upsert(lignes, { onConflict: "shop_id,sku,effective_from" });
     if (error) retour("cost-of-goods", slug, "erreur", error.message);
   }
   for (const d of drapeaux) {
@@ -56,13 +67,23 @@ export async function enregistrerProduits(slug: string, form: FormData): Promise
 
   await recalculer(supabase, shopId);
   revalidatePath(`/dashboard/${slug}/cost-of-goods`);
-  retour("cost-of-goods", slug, "ok", `${couts.length} coûts enregistrés.`, voir ? { voir } : undefined);
+  retour("cost-of-goods", slug, "ok", aPartirDu
+    ? `${lignes.length} nouveau${lignes.length > 1 ? "x" : ""} palier${lignes.length > 1 ? "s" : ""} à partir du ${aPartirDu}.`
+    : `${lignes.length} coûts enregistrés.`, voir ? { voir } : undefined);
 }
 
 export async function enregistrerShipping(slug: string, form: FormData): Promise<void> {
   const { supabase, shopId } = await boutique(slug);
   const pays = String(form.get("pays") ?? "");
   if (!pays) retour("shipping-costs", slug, "erreur", "Pays manquant.");
+
+  const aPartirDu = String(form.get("a_partir_du") ?? "").trim() || null;
+  if (aPartirDu && !/^\d{4}-\d{2}-\d{2}$/.test(aPartirDu))
+    retour("shipping-costs", slug, "erreur", "Date « à partir du » invalide.", { pays });
+  const { data: enVigueur } = await supabase
+    .from("shipping_costs_current").select("sku, standard, upsell, effective_from")
+    .eq("shop_id", shopId).eq("country", pays);
+  const courant = new Map((enVigueur ?? []).map((c) => [c.sku as string, { standard: Number(c.standard), upsell: Number(c.upsell), from: c.effective_from as string }]));
 
   const lignes = [];
   for (const [cle] of form.entries()) {
@@ -75,19 +96,27 @@ export async function enregistrerShipping(slug: string, form: FormData): Promise
     const skus = id.startsWith("grp__")
       ? String(form.get(`skus__${id}`) ?? "").split(",").filter(Boolean)
       : [id];
-    for (const sku of skus)
-      lignes.push({ shop_id: shopId, sku, country: pays, standard, upsell, is_estimated: true });
+    for (const sku of skus) {
+      const c = courant.get(sku);
+      if (aPartirDu && c && c.standard === standard && c.upsell === upsell) continue; // inchange : pas de palier
+      lignes.push({
+        shop_id: shopId, sku, country: pays, standard, upsell, is_estimated: true,
+        effective_from: aPartirDu ?? c?.from ?? "2000-01-01",
+      });
+    }
   }
 
   if (lignes.length) {
     const { error } = await supabase
-      .from("shipping_costs").upsert(lignes, { onConflict: "shop_id,sku,country" });
+      .from("shipping_costs").upsert(lignes, { onConflict: "shop_id,sku,country,effective_from" });
     if (error) retour("shipping-costs", slug, "erreur", error.message, { pays });
   }
 
   await recalculer(supabase, shopId);
   revalidatePath(`/dashboard/${slug}/shipping-costs`);
-  retour("shipping-costs", slug, "ok", `Grille ${pays} enregistrée (${lignes.length} lignes).`, { pays });
+  retour("shipping-costs", slug, "ok", aPartirDu
+    ? `Grille ${pays} : ${lignes.length} nouveau${lignes.length > 1 ? "x" : ""} palier${lignes.length > 1 ? "s" : ""} à partir du ${aPartirDu}.`
+    : `Grille ${pays} enregistrée (${lignes.length} lignes).`, { pays });
 }
 
 export async function ajouterCharge(slug: string, form: FormData): Promise<void> {
