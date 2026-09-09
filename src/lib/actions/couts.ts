@@ -45,9 +45,7 @@ export async function enregistrerProduits(slug: string, form: FormData): Promise
 
   // Date d'effet : vide = on corrige le palier en vigueur ; remplie = nouveau
   // palier a cette date, le passe garde l'ancien tarif.
-  const aPartirDu = String(form.get("a_partir_du") ?? "").trim() || null;
-  if (aPartirDu && !/^\d{4}-\d{2}-\d{2}$/.test(aPartirDu))
-    retour("cost-of-goods", slug, "erreur", "Date « à partir du » invalide.");
+  const aPartirDu: string | null = null; // le tableau corrige le tarif en vigueur ; les paliers dates passent par ajouterPalierProduit
   const { data: enVigueur } = await supabase
     .from("product_costs_current").select("sku, cost, effective_from").eq("shop_id", shopId);
   const courant = new Map((enVigueur ?? []).map((c) => [c.sku as string, { cost: Number(c.cost), from: c.effective_from as string }]));
@@ -77,9 +75,7 @@ export async function enregistrerShipping(slug: string, form: FormData): Promise
   const pays = String(form.get("pays") ?? "");
   if (!pays) retour("shipping-costs", slug, "erreur", "Pays manquant.");
 
-  const aPartirDu = String(form.get("a_partir_du") ?? "").trim() || null;
-  if (aPartirDu && !/^\d{4}-\d{2}-\d{2}$/.test(aPartirDu))
-    retour("shipping-costs", slug, "erreur", "Date « à partir du » invalide.", { pays });
+  const aPartirDu: string | null = null; // idem : les paliers dates passent par ajouterPalierShipping
   const { data: enVigueur } = await supabase
     .from("shipping_costs_current").select("sku, standard, upsell, effective_from")
     .eq("shop_id", shopId).eq("country", pays);
@@ -208,4 +204,68 @@ export async function enregistrerFraisPasserelles(slug: string, form: FormData):
   await recalculer(supabase, shopId);
   revalidatePath(`/dashboard/${slug}/custom-costs`);
   retour("custom-costs", slug, "ok", `Frais de paiement enregistrés (${lignes.length} passerelles), commandes recalculées.`);
+}
+
+
+/* ── Changements de prix programmes (paliers dates) ───────────────── */
+
+const dateValide = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d);
+
+/** Nouveau cout produit a partir d'une date. Le passe garde l'ancien tarif. */
+export async function ajouterPalierProduit(slug: string, form: FormData): Promise<void> {
+  const { supabase, shopId } = await boutique(slug);
+  const sku = String(form.get("sku") ?? "");
+  const date = String(form.get("date") ?? "");
+  const cost = Number(String(form.get("cost") ?? "").replace(",", "."));
+  if (!sku) retour("cost-of-goods", slug, "erreur", "Choisis un produit.");
+  if (!dateValide(date) || date <= "2000-01-01") retour("cost-of-goods", slug, "erreur", "Date invalide.");
+  if (!Number.isFinite(cost) || cost < 0) retour("cost-of-goods", slug, "erreur", "Coût invalide.");
+  const { error } = await supabase.from("product_costs")
+    .upsert({ shop_id: shopId, sku, cost, effective_from: date, source: "manual" }, { onConflict: "shop_id,sku,effective_from" });
+  if (error) retour("cost-of-goods", slug, "erreur", error.message);
+  await recalculer(supabase, shopId);
+  revalidatePath(`/dashboard/${slug}/cost-of-goods`);
+  retour("cost-of-goods", slug, "ok", `Changement enregistré : nouveau coût à partir du ${date}. Commandes recalculées.`);
+}
+
+export async function supprimerPalierProduit(slug: string, sku: string, date: string): Promise<void> {
+  const { supabase, shopId } = await boutique(slug);
+  if (date <= "2000-01-01") retour("cost-of-goods", slug, "erreur", "Le tarif d'origine ne se supprime pas, modifie-le dans le tableau.");
+  const { error } = await supabase.from("product_costs").delete()
+    .eq("shop_id", shopId).eq("sku", sku).eq("effective_from", date);
+  if (error) retour("cost-of-goods", slug, "erreur", error.message);
+  await recalculer(supabase, shopId);
+  revalidatePath(`/dashboard/${slug}/cost-of-goods`);
+  retour("cost-of-goods", slug, "ok", "Changement supprimé, commandes recalculées.");
+}
+
+/** Nouveau port (standard / upsell) pour un produit et un pays, a partir d'une date. */
+export async function ajouterPalierShipping(slug: string, form: FormData): Promise<void> {
+  const { supabase, shopId } = await boutique(slug);
+  const pays = String(form.get("pays") ?? "");
+  const skus = String(form.get("skus") ?? "").split(",").filter(Boolean);
+  const date = String(form.get("date") ?? "");
+  const standard = Number(String(form.get("standard") ?? "").replace(",", "."));
+  const upsell = Number(String(form.get("upsell") ?? "").replace(",", "."));
+  if (!pays || !skus.length) retour("shipping-costs", slug, "erreur", "Choisis un produit.", { pays });
+  if (!dateValide(date) || date <= "2000-01-01") retour("shipping-costs", slug, "erreur", "Date invalide.", { pays });
+  if (![standard, upsell].every((v) => Number.isFinite(v) && v >= 0)) retour("shipping-costs", slug, "erreur", "Tarif invalide.", { pays });
+  const { error } = await supabase.from("shipping_costs").upsert(
+    skus.map((sku) => ({ shop_id: shopId, sku, country: pays, standard, upsell, is_estimated: true, effective_from: date })),
+    { onConflict: "shop_id,sku,country,effective_from" });
+  if (error) retour("shipping-costs", slug, "erreur", error.message, { pays });
+  await recalculer(supabase, shopId);
+  revalidatePath(`/dashboard/${slug}/shipping-costs`);
+  retour("shipping-costs", slug, "ok", `Changement enregistré : nouveau port ${pays} à partir du ${date}.`, { pays });
+}
+
+export async function supprimerPalierShipping(slug: string, skusCsv: string, pays: string, date: string): Promise<void> {
+  const { supabase, shopId } = await boutique(slug);
+  if (date <= "2000-01-01") retour("shipping-costs", slug, "erreur", "Le tarif d'origine ne se supprime pas, modifie-le dans la grille.", { pays });
+  const { error } = await supabase.from("shipping_costs").delete()
+    .eq("shop_id", shopId).eq("country", pays).eq("effective_from", date).in("sku", skusCsv.split(",").filter(Boolean));
+  if (error) retour("shipping-costs", slug, "erreur", error.message, { pays });
+  await recalculer(supabase, shopId);
+  revalidatePath(`/dashboard/${slug}/shipping-costs`);
+  retour("shipping-costs", slug, "ok", "Changement supprimé, commandes recalculées.", { pays });
 }

@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { chargerSkus, nomSku } from "@/lib/skus";
-import { enregistrerShipping } from "@/lib/actions/couts";
+import { ajouterPalierShipping, enregistrerShipping, supprimerPalierShipping } from "@/lib/actions/couts";
 import { Carte, EnTetePage, Message } from "@/components/ui";
 import FormulaireSuivi from "@/components/formulaire-suivi";
-import { ChampAPartirDu, HistoriquePaliers, montant } from "@/components/paliers";
+import { ChangementsDePrix, montant } from "@/components/paliers";
+import { Champ } from "@/components/ui";
+import { aujourdhui } from "@/lib/periode";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +21,7 @@ export default async function ShippingPage({
 
   const supabase = await createClient();
   const { data: boutique } = await supabase
-    .from("shops").select("id, currency").eq("slug", slug).maybeSingle();
+    .from("shops").select("id, currency, timezone").eq("slug", slug).maybeSingle();
   const shopId = boutique!.id as string;
   const devise = boutique!.currency as string;
 
@@ -40,11 +42,11 @@ export default async function ShippingPage({
     supabase.from("shipping_costs_current").select("sku, standard, upsell").eq("shop_id", shopId).eq("country", paysActif),
     supabase.from("shipping_costs").select("sku, standard, upsell, effective_from").eq("shop_id", shopId).eq("country", paysActif),
   ]);
-  const paliers = (paliersBruts ?? []).map((p) => ({
-    sku: p.sku as string, effective_from: p.effective_from as string,
-    valeurs: `${montant(Number(p.standard), devise)} / ${montant(Number(p.upsell), devise)}`,
-  }));
-  const titres = new Map(expediables.map((s) => [s.sku, `${s.product_title ?? nomSku(s)}${s.variant_title ? " · " + s.variant_title : ""}`]));
+  // Paliers par PRODUIT (toutes les variantes d'un produit partagent le tarif) :
+  // cle = liste des SKUs du groupe, valeurs = "standard / upsell".
+  const skuVersGroupe = new Map<string, string>();
+  const paliersParGroupe = new Map<string, { effective_from: string; valeurs: string }>();
+  const auj = aujourdhui(boutique!.timezone as string);
   const parSku = new Map(
     (grille ?? []).map((g) => [g.sku as string, g as { standard: number; upsell: number }]),
   );
@@ -72,6 +74,19 @@ export default async function ShippingPage({
       mixte: std.size > 1 || ups.size > 1,
     };
   });
+  for (const l of lignesProduits) {
+    const cle = l.variantes.map((v) => v.sku).join(",");
+    for (const v of l.variantes) skuVersGroupe.set(v.sku, cle);
+  }
+  for (const p of paliersBruts ?? []) {
+    const cle = skuVersGroupe.get(p.sku as string); if (!cle) continue;
+    paliersParGroupe.set(`${cle}|${p.effective_from}`, {
+      effective_from: p.effective_from as string,
+      valeurs: `${montant(Number(p.standard), devise)} / ${montant(Number(p.upsell), devise)}`,
+    });
+  }
+  const paliers = [...paliersParGroupe.entries()].map(([k, v]) => ({ cle: k.split("|")[0], ...v }));
+  const titres = new Map(lignesProduits.map((l) => [l.variantes.map((v) => v.sku).join(","), `${l.tete.product_title ?? nomSku(l.tete)}${l.variantes.length > 1 ? ` (${l.variantes.length} variantes)` : ""}`]));
 
   return (
     <div className="px-7 py-8">
@@ -135,7 +150,6 @@ export default async function ShippingPage({
         libelleBouton={`Enregistrer la grille ${paysActif}`}
         champsCaches={<input type="hidden" name="pays" value={paysActif} />}
       >
-        <ChampAPartirDu note={`Vaut pour la grille ${paysActif} uniquement. Format : standard / upsell.`} />
         <Carte className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
@@ -187,8 +201,34 @@ export default async function ShippingPage({
             </table>
           </div>
         </Carte>
-        <HistoriquePaliers paliers={paliers} titres={titres} devise={devise} titre={`Historique des tarifs ${paysActif}`} />
       </FormulaireSuivi>
+
+      <ChangementsDePrix
+        titre={`Changements de port · ${paysActif}`}
+        intro={`La grille ci-dessus, c'est le port actuel pour ${paysActif}. Ici tu programmes un nouveau port à partir d'une date, par exemple la hausse de l'agent au Q4. Format : standard / upsell.`}
+        paliers={paliers}
+        titres={titres}
+        auj={auj}
+        champProduit="skus"
+        choix={lignesProduits.map((l) => ({ cle: l.variantes.map((v) => v.sku).join(","), libelle: titres.get(l.variantes.map((v) => v.sku).join(",")) ?? "" }))}
+        formulaire={{
+          action: ajouterPalierShipping.bind(null, slug),
+          caches: <input type="hidden" name="pays" value={paysActif} />,
+          champs: (
+            <>
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] text-faible">Standard ({devise})</span>
+                <Champ name="standard" type="text" inputMode="decimal" required placeholder="5,20" className="chiffres w-24 text-right" />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] text-faible">Upsell ({devise})</span>
+                <Champ name="upsell" type="text" inputMode="decimal" required placeholder="0,90" className="chiffres w-24 text-right" />
+              </label>
+            </>
+          ),
+        }}
+        supprimer={(cle, date) => supprimerPalierShipping.bind(null, slug, cle, paysActif, date)}
+      />
     </div>
   );
 }

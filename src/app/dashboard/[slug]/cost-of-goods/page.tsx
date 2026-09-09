@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { chargerSkus, nomSku, sansCout, type Sku } from "@/lib/skus";
-import { enregistrerProduits } from "@/lib/actions/couts";
+import { ajouterPalierProduit, enregistrerProduits, supprimerPalierProduit } from "@/lib/actions/couts";
 import { Carte, EnTetePage, Message, Pastille } from "@/components/ui";
 import FormulaireSuivi from "@/components/formulaire-suivi";
-import { ChampAPartirDu, HistoriquePaliers, montant } from "@/components/paliers";
+import { ChangementsDePrix, montant } from "@/components/paliers";
+import { Champ } from "@/components/ui";
+import { aujourdhui } from "@/lib/periode";
 import { formaterMontant } from "@/lib/periode";
 
 export const dynamic = "force-dynamic";
@@ -21,13 +23,14 @@ export default async function ProduitsPage({
 
   const supabase = await createClient();
   const { data: boutique } = await supabase
-    .from("shops").select("id, currency").eq("slug", slug).maybeSingle();
+    .from("shops").select("id, currency, timezone").eq("slug", slug).maybeSingle();
   const devise = boutique!.currency as string;
   const { visibles, actifs, inactifsVendus } = await chargerSkus(boutique!.id, tout);
   const { data: paliersBruts } = await supabase
     .from("product_costs").select("sku, cost, effective_from").eq("shop_id", boutique!.id);
-  const paliers = (paliersBruts ?? []).map((p) => ({ sku: p.sku as string, effective_from: p.effective_from as string, valeurs: montant(Number(p.cost), devise) }));
-  const titres = new Map(visibles.map((s) => [s.sku, nomSku(s)]));
+  const paliers = (paliersBruts ?? []).map((p) => ({ cle: p.sku as string, effective_from: p.effective_from as string, valeurs: montant(Number(p.cost), devise) }));
+  const titres = new Map(visibles.map((s) => [s.sku, nomSku(s) + (s.variant_title ? " · " + s.variant_title : "")]));
+  const auj = aujourdhui(boutique!.timezone as string);
   const manquants = sansCout(visibles).length;
 
   return (
@@ -51,7 +54,6 @@ export default async function ProduitsPage({
         libelleBouton="Enregistrer les coûts"
         champsCaches={<input type="hidden" name="voir" value={voir ?? ""} />}
       >
-        <ChampAPartirDu note="Seuls les coûts qui changent créent un palier." />
         <Carte className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
@@ -129,8 +131,26 @@ export default async function ProduitsPage({
             </Link>
           )}
         </div>
-        <HistoriquePaliers paliers={paliers} titres={titres} devise={devise} />
       </FormulaireSuivi>
+
+      <ChangementsDePrix
+        titre="Changements de prix"
+        intro="Le tableau ci-dessus, c'est le coût actuel. Ici tu programmes un nouveau coût à partir d'une date : les commandes d'avant gardent l'ancien, celles d'après prennent le nouveau. Exemple : nouveau stock reçu le 1er septembre, moins cher à l'unité."
+        paliers={paliers}
+        titres={titres}
+        auj={auj}
+        choix={visibles.filter((s) => !s.exclude_from_shipping).map((s) => ({ cle: s.sku, libelle: titres.get(s.sku) ?? s.sku }))}
+        formulaire={{
+          action: ajouterPalierProduit.bind(null, slug),
+          champs: (
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] text-faible">Nouveau coût ({devise})</span>
+              <Champ name="cost" type="text" inputMode="decimal" required placeholder="0,95" className="chiffres w-28 text-right" />
+            </label>
+          ),
+        }}
+        supprimer={(sku, date) => supprimerPalierProduit.bind(null, slug, sku, date)}
+      />
 
       <p className="mt-6 max-w-2xl text-[11.5px] leading-relaxed text-faible">
         Coche <b className="text-doux">ne s&apos;expédie pas</b> pour les produits
