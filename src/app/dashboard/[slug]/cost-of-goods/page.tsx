@@ -22,12 +22,12 @@ export default async function ProduitsPage({
   const supabase = await createClient();
   const { data: boutique } = await supabase
     .from("shops").select("id, currency").eq("slug", slug).maybeSingle();
+  const devise = boutique!.currency as string;
   const { visibles, actifs, inactifsVendus } = await chargerSkus(boutique!.id, tout);
   const { data: paliersBruts } = await supabase
     .from("product_costs").select("sku, cost, effective_from").eq("shop_id", boutique!.id);
   const paliers = (paliersBruts ?? []).map((p) => ({ sku: p.sku as string, effective_from: p.effective_from as string, valeurs: montant(Number(p.cost), devise) }));
   const titres = new Map(visibles.map((s) => [s.sku, nomSku(s)]));
-  const devise = boutique!.currency as string;
   const manquants = sansCout(visibles).length;
 
   return (
