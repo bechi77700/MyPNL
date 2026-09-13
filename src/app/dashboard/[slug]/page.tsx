@@ -8,6 +8,7 @@ import BarreRapport from "@/components/barre-rapport";
 import { BarreRepartition, Colonnes, Courbe } from "@/components/charts";
 import { Carte, Delta, Section } from "@/components/ui";
 import { Metrique, MetriqueLigne } from "@/components/metrique";
+import { calculerTargets } from "@/lib/targets";
 import AlerteConnecteur, { type Renouvellement } from "@/components/alerte-connecteur";
 
 export const dynamic = "force-dynamic";
@@ -90,7 +91,15 @@ export default async function Dashboard({
   const ebitda = n(a.ebitda);
   const caHt = n(a.revenue_ht);
   const roas = n(a.ad_spend) ? n(a.gross_sales) / n(a.ad_spend) : null;
-  const seuil = caHt > 0 && n(a.gross_margin) > 0 ? 1 / (n(a.gross_margin) / caHt) : null;
+  const targets = await calculerTargets(supabase, boutique!.id, boutique!.timezone);
+  // Seuil : celui du produit principal (onglet Targets) si regle, sinon la marge brute de la periode.
+  const seuil = targets ? targets.be : caHt > 0 && n(a.gross_margin) > 0 ? 1 / (n(a.gross_margin) / caHt) : null;
+  const teinteRoas = roas === null || seuil === null ? "neutre"
+    : targets && roas >= targets.cible ? "positif" : roas >= seuil ? (targets ? "orange" : "positif") : "rose";
+  const noteRoas = roas === null || seuil === null ? undefined
+    : targets ? (roas >= targets.cible ? `au-dessus de la cible ${targets.cible.toFixed(2)}` : roas >= targets.be ? `rentable, sous la cible ${targets.cible.toFixed(2)}` : `sous le breakeven ${targets.be.toFixed(2)}`)
+    : roas >= seuil ? "au-dessus du seuil" : "sous le seuil : tu perds";
+  const r2 = (v: number) => v.toFixed(2).replace(".", ",");
   const coutsTotaux =
     n(a.cogs) + n(a.transaction_fees) + n(a.ad_spend) + n(a.opex) + n(a.owner_salary);
 
@@ -197,8 +206,9 @@ export default async function Dashboard({
             <Groupe titre="Résultat">
               <MetriqueLigne icone="marge" teinte="positif" label="Marge brute" valeur={m(n(a.gross_margin))} delta={evo(n(a.gross_margin), n(b.gross_margin))} />
               <MetriqueLigne icone="profit" teinte="positif" label="Contribution" valeur={m(n(a.contribution))} delta={evo(n(a.contribution), n(b.contribution))} />
-              <MetriqueLigne icone="cible" teinte={roas !== null && seuil !== null ? (roas >= seuil ? "positif" : "rose") : "neutre"}
-                label="ROAS blended" valeur={roas !== null ? roas.toFixed(2) : "—"} />
+              <MetriqueLigne icone="cible" teinte={teinteRoas}
+                label="ROAS blended" valeur={roas !== null ? roas.toFixed(2) : "—"}
+                note={targets ? `BE ${r2(targets.be)} · cible ${r2(targets.cible)}` : undefined} />
             </Groupe>
           </div>
         </div>
@@ -289,15 +299,28 @@ export default async function Dashboard({
             delta={evo(n(a.new_customers), n(b.new_customers))} />
           <Metrique icone="articles" teinte="orange" label="Articles vendus" valeur={formaterNombre(n(a.units))} />
           <Metrique icone="cible"
-            teinte={roas !== null && seuil !== null ? (roas >= seuil ? "positif" : "rose") : "neutre"}
+            teinte={teinteRoas}
             label="ROAS blended"
             valeur={roas !== null ? roas.toFixed(2) : "—"}
-            note={roas !== null && seuil !== null
-              ? (roas >= seuil ? "au-dessus du seuil" : "sous le seuil : tu perds")
-              : undefined} />
-          <Metrique icone="frais" teinte="neutre" label="ROAS seuil de rentabilité"
-            valeur={seuil !== null ? seuil.toFixed(2) : "—"}
-            note="le minimum pour ne pas perdre" />
+            note={noteRoas} />
+          {targets ? (
+            <Link href={`/dashboard/${slug}/targets`} className="carte carte-survol rounded-[14px] bg-carte px-5 py-4 transition-colors">
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate text-[12px] text-faible">Targets · {targets.label ?? "produit principal"}</span>
+                <span className="text-[11px] text-accent">voir →</span>
+              </div>
+              <div className="chiffres mt-2.5 flex items-baseline gap-3 leading-none">
+                <span><span className="text-[11px] text-faible">BE </span><span className="text-[18px] font-semibold text-texte">{r2(targets.be)}</span></span>
+                <span><span className="text-[11px] text-faible">cible </span><span className="text-[18px] font-semibold text-accent">{r2(targets.cible)}</span></span>
+                <span><span className="text-[11px] text-faible">−20 % </span><span className="text-[18px] font-semibold text-texte">{r2(targets.moins20)}</span></span>
+              </div>
+              <p className="mt-2 text-[11px] text-faible">ATC max {m(targets.coutAtc)} · sur 30 jours</p>
+            </Link>
+          ) : (
+            <Metrique icone="frais" teinte="neutre" label="ROAS seuil de rentabilité"
+              valeur={seuil !== null ? seuil.toFixed(2) : "—"}
+              note="le minimum pour ne pas perdre" />
+          )}
         </div>
       </div>
     </div>
