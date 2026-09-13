@@ -207,8 +207,7 @@ export default async function Dashboard({
               <MetriqueLigne icone="marge" teinte="positif" label="Marge brute" valeur={m(n(a.gross_margin))} delta={evo(n(a.gross_margin), n(b.gross_margin))} />
               <MetriqueLigne icone="profit" teinte="positif" label="Contribution" valeur={m(n(a.contribution))} delta={evo(n(a.contribution), n(b.contribution))} />
               <MetriqueLigne icone="cible" teinte={teinteRoas}
-                label="ROAS blended" valeur={roas !== null ? roas.toFixed(2) : "—"}
-                note={targets ? `BE ${r2(targets.be)} · cible ${r2(targets.cible)}` : undefined} />
+                label={targets ? `ROAS blended · cible ${r2(targets.cible)}` : "ROAS blended"} valeur={roas !== null ? roas.toFixed(2) : "—"} />
             </Groupe>
           </div>
         </div>
