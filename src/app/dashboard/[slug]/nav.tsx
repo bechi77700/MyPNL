@@ -13,6 +13,7 @@ const T = {
 
 /** Une icone par onglet : la navigation se lit d'un coup d'oeil. */
 const ICONES: Record<string, React.ReactNode> = {
+  targets: <><circle cx="9" cy="9" r="6.5" {...T} /><circle cx="9" cy="9" r="3" {...T} /><circle cx="9" cy="9" r="0.9" fill="currentColor" /></>,
   dashboard: <><rect x="2.5" y="2.5" width="5.5" height="5.5" rx="1.5" {...T} /><rect x="10" y="2.5" width="5.5" height="5.5" rx="1.5" {...T} /><rect x="2.5" y="10" width="5.5" height="5.5" rx="1.5" {...T} /><rect x="10" y="10" width="5.5" height="5.5" rx="1.5" {...T} /></>,
   pnl: <><path d="M3 15V3M3 15h12" {...T} /><path d="M5.5 11.5 8.5 8l2.5 2.2L15 5.5" {...T} /></>,
   orders: <><path d="M4 3.5h10l-.9 8.2a1.5 1.5 0 0 1-1.5 1.3H6.4a1.5 1.5 0 0 1-1.5-1.3z" {...T} /><path d="M6.5 6.2V5a2.5 2.5 0 0 1 5 0v1.2" {...T} /></>,
@@ -39,6 +40,7 @@ const SECTIONS: {
       { href: "", label: "Dashboard", icone: "dashboard" },
       { href: "/pnl", label: "P&L Report", icone: "pnl" },
       { href: "/orders", label: "Orders Report", icone: "orders" },
+      { href: "/targets", label: "Targets", icone: "targets" },
       { href: "/forecast", label: "Forecast", icone: "forecast" },
       { href: "/planning", label: "Planning", icone: "planning" },
     ],
