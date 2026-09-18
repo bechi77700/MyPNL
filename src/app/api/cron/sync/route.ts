@@ -6,7 +6,8 @@ import { syncSpendMeta } from "@/lib/sync/meta";
 export const maxDuration = 60;
 
 /**
- * Synchronisation automatique, appelee toutes les heures par GitHub Actions.
+ * Synchronisation automatique, appelee par pg_cron (Supabase) toutes les 15 min.
+ * GitHub Actions n'est qu'un filet de secours : son planificateur saute des heures.
  * Incrementale : on ne rappelle Shopify que sur les jours recents,
  * le passe reste fige.
  */
@@ -29,7 +30,7 @@ async function executer(request: Request) {
 
   for (const b of boutiques ?? []) {
     // On garde 8 s de marge avant la coupure a 60 s : la boutique non traitee
-    // sera reprise a l'heure suivante, la synchro etant incrementale.
+    // sera reprise au passage suivant, la synchro etant incrementale.
     if (Date.now() - debut > 52_000) {
       resultats.push({ boutique: b.slug, ignore: "temps imparti atteint" });
       continue;

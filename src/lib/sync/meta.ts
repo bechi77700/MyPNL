@@ -216,6 +216,17 @@ export async function syncSpendMeta(
     if (error) throw new Error(`upsert ad_spend : ${error.message}`);
   }
 
+  // Le Dashboard lit daily_facts, pas ad_spend. Sans ce rafraichissement, la
+  // depense ecrite ci-dessus n'apparaissait qu'a la synchro SUIVANTE (la synchro
+  // Shopify reconstruit le cache AVANT que Meta n'ecrive) : il fallait cliquer
+  // deux fois sur Actualiser, et la synchro auto avait un cycle de retard.
+  // On le fait ici pour que tout appelant soit juste, quel que soit l'ordre.
+  if (lignes.length) {
+    const fin = new Date(new Date(jusqua + "T12:00:00Z").getTime() + 86400_000).toISOString().slice(0, 10);
+    const { error } = await admin.rpc("refresh_daily_facts", { p_shop: shopId, p_from: depuis, p_to: fin });
+    if (error) erreurs.push(`cache pub : ${error.message}`); // la depense est sauvee, seul l'affichage attendra
+  }
+
   await admin.from("connectors")
     .update({
       last_sync_at: new Date().toISOString(),
