@@ -6,6 +6,8 @@ type Admin = ReturnType<typeof createAdminClient>;
 type Creds = { token: string; domaine: string };
 
 export type ResultatSync = {
+  /** true = cette passe a relu les 3 derniers jours (filet quotidien), false = seulement le delta. */
+  rebalayage?: boolean;
   commandes: number;
   produits: number;
   jours_frais: number;
@@ -519,13 +521,36 @@ export async function syncBoutique(
     jours_sessions: 0, jours_recalcules: 0, erreurs: [],
   };
 
-  // En incremental on rebalaie 3 jours en arriere pour rattraper les trous.
+  // `depuis` sert de drapeau "incremental" aux autres etapes (frais...).
   const depuis = opts.complet
     ? undefined
     : new Date(Date.now() - 3 * 86400_000).toISOString();
 
+  // Commandes : on ne relit que ce qui a change depuis la derniere synchro REUSSIE
+  // (curseur - 10 min de recouvrement pour les ecarts d'horloge), et on refait le
+  // rebalayage de 3 jours une fois par 24 h comme filet de securite. Avant, chaque
+  // passe relisait les 3 jours : ~1 130 commandes pour EverHaar toutes les 15 min.
+  const debutSync = new Date();
+  const { data: connCmd } = await admin
+    .from("connectors").select("sync_cursor")
+    .eq("shop_id", shopId).eq("platform", "shopify").maybeSingle();
+  const cur = (connCmd?.sync_cursor ?? {}) as { orders_updated_min?: string; orders_rescan_at?: string };
+  const rebalayage = !opts.complet && (
+    !cur.orders_updated_min || !cur.orders_rescan_at ||
+    debutSync.getTime() - Date.parse(cur.orders_rescan_at) > 24 * 3600_000
+  );
+  const depuisCommandes = opts.complet ? undefined
+    : rebalayage ? depuis
+    : new Date(Math.max(Date.parse(cur.orders_updated_min!) - 10 * 60_000, Date.parse(depuis!))).toISOString();
+  res.rebalayage = rebalayage;
+  let commandesOk = false;
+
   const etapes: [keyof ResultatSync, () => Promise<number>][] = [
-    ["commandes", () => syncCommandes(admin, creds, shopId, depuis)],
+    ["commandes", async () => {
+      const n = await syncCommandes(admin, creds, shopId, depuisCommandes);
+      commandesOk = true;
+      return n;
+    }],
     ["produits", () => syncProduits(admin, creds, shopId)],
     ["jours_frais", () => syncFrais(admin, creds, shopId, tz, depuis)],
     ["payouts", () => syncPayouts(admin, creds, shopId)],
@@ -539,6 +564,20 @@ export async function syncBoutique(
     } catch (e) {
       res.erreurs.push(`${cle} : ${e instanceof Error ? e.message : String(e)}`);
     }
+  }
+
+  // Le curseur n'avance que si la lecture des commandes est allee au bout : sinon la
+  // passe suivante repart du meme point. On prend l'heure de DEBUT de cette synchro,
+  // pour relire au prochain passage ce qui a change pendant qu'elle tournait.
+  if (commandesOk) {
+    const { error: eCur } = await admin.rpc("set_sync_cursor_keys", {
+      p_shop: shopId, p_platform: "shopify",
+      p_keys: {
+        orders_updated_min: debutSync.toISOString(),
+        ...(rebalayage || opts.complet ? { orders_rescan_at: debutSync.toISOString() } : {}),
+      },
+    });
+    if (eCur) res.erreurs.push(`curseur commandes : ${eCur.message}`);
   }
 
   try {

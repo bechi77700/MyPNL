@@ -1,7 +1,7 @@
 /** Chronometre chaque etape d'une synchro INCREMENTALE, pour trouver la lente. */
 import fs from "node:fs";
 for (const l of fs.readFileSync(".env.local", "utf8").split("\n")) {
-  const i = l.indexOf("="); if (i > 0) process.env[l.slice(0, i)] ??= l.slice(i + 1);
+  const i = l.indexOf("="); if (i > 0) process.env[l.slice(0, i)] ??= l.slice(i + 1).replace(/^'|'$/g, "");
 }
 if (!("WebSocket" in globalThis)) {
   const { WebSocket } = await import("ws");
@@ -11,7 +11,7 @@ const { createAdminClient } = await import("../src/lib/supabase/admin");
 const S = await import("../src/lib/sync/shopify");
 const M = await import("../src/lib/sync/meta");
 const admin = createAdminClient();
-const { data: shop } = await admin.from("shops").select("id, timezone").eq("slug", "looma").single();
+const { data: shop } = await admin.from("shops").select("id, timezone").eq("slug", process.argv[2] ?? "looma").single();
 const id = shop!.id as string, tz = shop!.timezone as string;
 const creds = await S.chargerCreds(admin, id);
 const depuis = new Date(Date.now() - 3 * 86400_000).toISOString();

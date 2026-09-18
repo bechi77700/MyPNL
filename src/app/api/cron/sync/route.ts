@@ -40,6 +40,7 @@ async function executer(request: Request) {
     try {
       const s = await syncBoutique(b.id);
       r.commandes = s.commandes;
+      r.rebalayage = s.rebalayage ?? false;
       r.jours_frais = s.jours_frais;
       if (s.erreurs.length) r.erreurs_shopify = s.erreurs;
     } catch (e) {
