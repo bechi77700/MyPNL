@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, reprisesJwt } from "@/lib/supabase/admin";
 import { syncBoutique } from "@/lib/sync/shopify";
 import { syncSpendMeta } from "@/lib/sync/meta";
 
@@ -18,6 +18,7 @@ async function executer(request: Request) {
     return NextResponse.json({ erreur: "Non autorisé." }, { status: 401 });
 
   const admin = createAdminClient();
+  const reprisesAvant = reprisesJwt.n;
   const cible = new URL(request.url).searchParams.get("shop");
 
   let q = admin.from("shops").select("id, slug, name").eq("is_active", true);
@@ -57,6 +58,8 @@ async function executer(request: Request) {
 
   return NextResponse.json({
     duree_s: Math.round((Date.now() - debut) / 1000),
+    // > 0 : Supabase a refuse une requete pour desaccord d'horloge, rejouee avec succes.
+    reprises_jwt: reprisesJwt.n - reprisesAvant,
     boutiques: resultats,
   });
 }
