@@ -20,6 +20,7 @@ export const ICONES: Record<string, React.ReactNode> = {
   panier: <><path d="M4 6h10l-1 6H5z" {...TRAITS} /><path d="M9 3v3M7.4 4.4 9 3l1.6 1.4" {...TRAITS} /></>,
   articles: <><rect x="2.5" y="6" width="13" height="9" rx="1.6" {...TRAITS} /><path d="M6 6V4.2A1.2 1.2 0 0 1 7.2 3h3.6A1.2 1.2 0 0 1 12 4.2V6" {...TRAITS} /></>,
   profit: <><path d="M9 2.5v13M11.8 5.2c-.5-.9-1.6-1.4-2.8-1.4-1.7 0-2.9.9-2.9 2.2 0 3 5.8 1.6 5.8 4.8 0 1.4-1.3 2.4-3 2.4-1.4 0-2.6-.6-3.1-1.6" {...TRAITS} /></>,
+  remboursement: <><path d="M4 8l-2 2 2 2" {...TRAITS} /><path d="M2 10h9a4 4 0 0 0 0-8H8" {...TRAITS} /><path d="M5 14h9" {...TRAITS} /><path d="M5 16.5h6" {...TRAITS} /></>,
 };
 
 const TEINTES = {
