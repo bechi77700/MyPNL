@@ -195,6 +195,9 @@ export default async function Dashboard({
             <Groupe titre="Ventes">
               <MetriqueLigne icone="commandes" teinte="bleu" label="Commandes" valeur={formaterNombre(n(a.orders_count))} delta={evo(n(a.orders_count), n(b.orders_count))} />
               <MetriqueLigne icone="argent" teinte="vert" label="Chiffre d'affaires" valeur={m(n(a.gross_sales))} delta={evo(n(a.gross_sales), n(b.gross_sales))} />
+              {n(a.refunds) > 0 && (
+                <MetriqueLigne icone="remboursement" teinte="rose" label="Remboursements" valeur={m(n(a.refunds))} delta={evo(n(a.refunds), n(b.refunds))} inverse />
+              )}
               <MetriqueLigne icone="panier" teinte="jaune" label="Panier moyen" valeur={n(a.orders_count) ? m(n(a.gross_sales) / n(a.orders_count)) : "—"}
                 delta={n(a.orders_count) && n(b.orders_count) ? evo(n(a.gross_sales) / n(a.orders_count), n(b.gross_sales) / n(b.orders_count)) : null} />
             </Groupe>
