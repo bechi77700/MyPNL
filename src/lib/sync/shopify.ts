@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decrypt } from "@/lib/crypto";
 import { SHOPIFY_API_VERSION } from "@/lib/shopify";
+import { moyenDepuisDetail, type DetailTransaction } from "@/lib/paiements";
 
 type Admin = ReturnType<typeof createAdminClient>;
 type Creds = { token: string; domaine: string };
@@ -9,6 +10,7 @@ export type ResultatSync = {
   /** true = cette passe a relu les 3 derniers jours (filet quotidien), false = seulement le delta. */
   rebalayage?: boolean;
   commandes: number;
+  moyens_paiement: number;
   produits: number;
   jours_frais: number;
   payouts: number;
@@ -152,6 +154,8 @@ async function recupererRemboursements(
 
 export async function syncCommandes(
   admin: Admin, creds: Creds, shopId: string, depuis?: string,
+  /** Rempli avec la date de la plus ancienne commande relue (ISO UTC). */
+  suivi?: { plusAncienne?: string },
 ) {
   let total = 0;
   const skus = new Map<string, { title?: string; variant_title?: string | null; product_id?: string | null }>();
@@ -203,6 +207,13 @@ export async function syncCommandes(
       };
     });
 
+    if (suivi) {
+      for (const l of lignes) {
+        const d = new Date(l.order_date).toISOString();
+        if (!suivi.plusAncienne || d < suivi.plusAncienne) suivi.plusAncienne = d;
+      }
+    }
+
     // Seules les commandes marquees remboursees necessitent l'appel GraphQL.
     const aVerifier = lignes
       .filter((l) => l.financial_status && l.financial_status !== "paid" && l.financial_status !== "pending")
@@ -234,6 +245,59 @@ export async function syncCommandes(
   return total;
 }
 
+
+// ──────────────── Moyens de paiement (Shopify Payments) ────────────────
+
+type TransactionGql = { kind?: string; status?: string; paymentDetails?: DetailTransaction | null };
+
+/**
+ * Shopify Payments regroupe carte, Apple Pay, Shop Pay et Klarna sous une seule
+ * passerelle : le detail n'existe que sur la transaction. On le lit pour les
+ * commandes pas encore detaillees, les plus recentes d'abord, `max` par passe :
+ * les nouvelles commandes sont servies tout de suite et l'historique se
+ * rattrape de lui-meme au fil des synchros.
+ */
+export async function syncMoyensPaiement(admin: Admin, creds: Creds, shopId: string, max = 250) {
+  const { data, error } = await admin
+    .from("orders").select("external_id")
+    .eq("shop_id", shopId).eq("gateway", "shopify_payments").is("payment_method", null)
+    .order("order_date", { ascending: false }).limit(max);
+  // Migration 037 pas encore passee : on saute l'etape sans mettre le connecteur en erreur.
+  if (error?.code === "42703") return 0;
+  if (error) throw new Error(`lecture moyens de paiement : ${error.message}`);
+  const ids = (data ?? []).map((o) => o.external_id as string);
+
+  let total = 0;
+  for (let i = 0; i < ids.length; i += 50) {
+    const lot = ids.slice(i, i + 50);
+    const gids = lot.map((id) => `"gid://shopify/Order/${id}"`).join(",");
+    const res = await gql<{ nodes: ({ id: string; transactions?: TransactionGql[] } | null)[] }>(
+      creds,
+      `{ nodes(ids: [${gids}]) { ... on Order { id transactions(first: 5) { kind status paymentDetails {
+          __typename
+          ... on CardPaymentDetails { wallet }
+          ... on LocalPaymentMethodsPaymentDetails { paymentMethodName }
+        } } } } }`,
+    );
+    const trouves = new Map<string, string>();
+    for (const n of res.nodes ?? []) {
+      if (!n?.id) continue;
+      const tx = n.transactions ?? [];
+      // La transaction encaissee fait foi ; a defaut (paiement en attente), la premiere lisible.
+      const reussies = tx.filter((t) => t.status === "SUCCESS" && ["SALE", "AUTHORIZATION", "CAPTURE"].includes(t.kind ?? ""));
+      const m = [...reussies, ...tx].map((t) => moyenDepuisDetail(t.paymentDetails)).find(Boolean);
+      if (m) trouves.set(n.id.split("/").pop()!, m);
+    }
+    // Sans detail lisible, on garde "shopify_payments" : la commande n'est plus redemandee.
+    const { error: e } = await admin.rpc("set_order_payment_methods", {
+      p_shop: shopId, p_ids: lot, p_methods: lot.map((id) => trouves.get(id) ?? "shopify_payments"),
+    });
+    if (e) throw new Error(`moyens de paiement : ${e.message}`);
+    total += lot.length;
+    await dormir(PAUSE_MS);
+  }
+  return total;
+}
 
 // ─────────────────────── Catalogue produits ───────────────────────
 
@@ -517,7 +581,7 @@ export async function syncBoutique(
   const creds = await chargerCreds(admin, shopId);
   const tz = shop.timezone || "UTC";
   const res: ResultatSync = {
-    commandes: 0, produits: 0, jours_frais: 0, payouts: 0, litiges: 0,
+    commandes: 0, moyens_paiement: 0, produits: 0, jours_frais: 0, payouts: 0, litiges: 0,
     jours_sessions: 0, jours_recalcules: 0, erreurs: [],
   };
 
@@ -544,13 +608,15 @@ export async function syncBoutique(
     : new Date(Math.max(Date.parse(cur.orders_updated_min!) - 10 * 60_000, Date.parse(depuis!))).toISOString();
   res.rebalayage = rebalayage;
   let commandesOk = false;
+  const relues: { plusAncienne?: string } = {};
 
   const etapes: [keyof ResultatSync, () => Promise<number>][] = [
     ["commandes", async () => {
-      const n = await syncCommandes(admin, creds, shopId, depuisCommandes);
+      const n = await syncCommandes(admin, creds, shopId, depuisCommandes, relues);
       commandesOk = true;
       return n;
     }],
+    ["moyens_paiement", () => syncMoyensPaiement(admin, creds, shopId)],
     ["produits", () => syncProduits(admin, creds, shopId)],
     ["jours_frais", () => syncFrais(admin, creds, shopId, tz, depuis)],
     ["payouts", () => syncPayouts(admin, creds, shopId)],
@@ -584,7 +650,17 @@ export async function syncBoutique(
     await admin.rpc("recompute_new_customers", { p_shop: shopId });
     // Le passe est fige : on ne rafraichit que la fenetre utile.
     const jours = opts.complet ? 3650 : 21;
-    const debut = new Date(Date.now() - jours * 86400_000).toISOString().slice(0, 10);
+    let debut = new Date(Date.now() - jours * 86400_000).toISOString().slice(0, 10);
+    // Un remboursement sur une commande plus ancienne que la fenetre met a jour
+    // la commande, mais sa journee n'etait jamais recalculee : le remboursement
+    // n'apparaissait nulle part. On elargit jusqu'a la plus ancienne relue
+    // (-1 j pour le fuseau), plafonne a 400 jours.
+    if (relues.plusAncienne) {
+      const plancher = new Date(Date.now() - 400 * 86400_000).toISOString().slice(0, 10);
+      const veille = new Date(Date.parse(relues.plusAncienne) - 86400_000).toISOString().slice(0, 10);
+      const cible = veille < plancher ? plancher : veille;
+      if (cible < debut) debut = cible;
+    }
     const fin = new Date(Date.now() + 86400_000).toISOString().slice(0, 10);
     const { data } = await admin.rpc("refresh_daily_facts", {
       p_shop: shopId, p_from: debut, p_to: fin,

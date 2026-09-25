@@ -293,16 +293,19 @@ export function Colonnes({
 
 /** Repartition des coûts : une barre empilee, ecarts de 2px en couleur de fond. */
 export function BarreRepartition({
-  parts, total, devise = "USD",
+  parts, total, devise = "USD", unite = "monnaie", vide = "Aucun coût sur la période.",
 }: {
-  parts: { label: string; valeur: number }[];
+  parts: { label: string; valeur: number; couleur?: string }[];
   total: number;
   devise?: string;
+  unite?: Unite;
+  vide?: string;
 }) {
-  const format = faireFormat("monnaie", devise);
+  const format = faireFormat(unite, devise);
   const visibles = parts.filter((p) => p.valeur > 0);
   if (!visibles.length || total <= 0)
-    return <p className="text-sm text-faible">Aucun coût sur la période.</p>;
+    return <p className="text-sm text-faible">{vide}</p>;
+  const couleur = (p: { couleur?: string }, i: number) => p.couleur ?? SERIES[i % SERIES.length];
 
   return (
     <div>
@@ -313,8 +316,8 @@ export function BarreRepartition({
             className="rounded-full transition-[filter] hover:brightness-125"
             style={{
               width: `${(p.valeur / total) * 100}%`,
-              background: `linear-gradient(180deg, rgb(255 255 255 / 0.18), transparent 60%), ${SERIES[i % SERIES.length]}`,
-              boxShadow: `0 0 10px -2px ${SERIES[i % SERIES.length]}80`,
+              background: `linear-gradient(180deg, rgb(255 255 255 / 0.18), transparent 60%), ${couleur(p, i)}`,
+              boxShadow: `0 0 10px -2px ${couleur(p, i)}80`,
             }}
             title={`${p.label} · ${format(p.valeur)}`}
           />
@@ -326,7 +329,7 @@ export function BarreRepartition({
           <li key={p.label} className="flex items-center gap-2.5">
             <span
               className="size-2.5 shrink-0 rounded-full"
-              style={{ backgroundColor: SERIES[i % SERIES.length], boxShadow: `0 0 8px ${SERIES[i % SERIES.length]}66` }}
+              style={{ backgroundColor: couleur(p, i), boxShadow: `0 0 8px ${couleur(p, i)}66` }}
             />
             <span className="min-w-0 flex-1 truncate text-[12.5px] text-doux">{p.label}</span>
             <span className="chiffres text-[12.5px] text-texte">{format(p.valeur)}</span>
@@ -336,6 +339,98 @@ export function BarreRepartition({
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+/**
+ * Colonnes empilees a 100 % : la part de chaque serie, jour par jour.
+ * Les volumes changent d'un jour a l'autre, les parts restent comparables.
+ */
+export function Colonnes100({
+  jours, series, hauteur = 180,
+}: {
+  jours: { x: string; valeurs: Record<string, number> }[];
+  series: { cle: string; label: string; couleur: string }[];
+  hauteur?: number;
+}) {
+  const [ref, L] = useLargeur();
+  const [survol, setSurvol] = useState<number | null>(null);
+  const marge = { g: 36, d: 10, h: 8, b: 24 };
+  const w = Math.max(0, L - marge.g - marge.d);
+  const h = hauteur - marge.h - marge.b;
+  const bande = jours.length ? w / jours.length : 0;
+  const epaisseur = Math.max(1, Math.min(24, bande - 2));
+  const totalDe = (j: { valeurs: Record<string, number> }) =>
+    Object.values(j.valeurs).reduce((a, v) => a + v, 0);
+  const courant = survol !== null ? jours[survol] : null;
+  const totalCourant = courant ? totalDe(courant) : 0;
+
+  return (
+    <div ref={ref} className="relative">
+      {L > 0 && (
+        <svg width={L} height={hauteur} className="block" onMouseLeave={() => setSurvol(null)}>
+          <g transform={`translate(${marge.g},${marge.h})`}>
+            {[0, 0.5, 1].map((t) => (
+              <g key={t}>
+                <line x1={0} x2={w} y1={h - t * h} y2={h - t * h} stroke={GRILLE} strokeWidth={1} />
+                <text x={-8} y={h - t * h} dy="0.32em" textAnchor="end" className="fill-[#6e6e6e] text-[10px] tabular-nums">
+                  {t * 100} %
+                </text>
+              </g>
+            ))}
+            {jours.map((j, i) => {
+              const total = totalDe(j);
+              if (!total) return null;
+              let y = h;
+              return (
+                <g key={j.x} opacity={survol === null || survol === i ? 1 : 0.4}
+                  style={{ transition: "opacity .15s ease" }} onMouseEnter={() => setSurvol(i)}>
+                  {/* Zone de survol pleine hauteur, meme sur un jour sans commande d'une serie. */}
+                  <rect x={i * bande} y={0} width={bande} height={h} fill="transparent" />
+                  {series.map((s) => {
+                    const v = j.valeurs[s.cle] ?? 0;
+                    if (!v) return null;
+                    const hs = (v / total) * h;
+                    y -= hs;
+                    return (
+                      <rect key={s.cle} x={i * bande + (bande - epaisseur) / 2} y={y}
+                        width={epaisseur} height={Math.max(0, hs - 1)} fill={s.couleur} rx={1.5} />
+                    );
+                  })}
+                </g>
+              );
+            })}
+            {jours.length > 1 && (
+              <>
+                <text x={0} y={h + 16} className="fill-[#6e6e6e] text-[10px]">{jourCourt(jours[0].x)}</text>
+                <text x={w} y={h + 16} textAnchor="end" className="fill-[#6e6e6e] text-[10px]">
+                  {jourCourt(jours[jours.length - 1].x)}
+                </text>
+              </>
+            )}
+          </g>
+        </svg>
+      )}
+      {courant && survol !== null && totalCourant > 0 && (
+        <div
+          className="pointer-events-none absolute top-1 z-10 rounded-[7px] border border-bord-fort bg-elev px-2.5 py-1.5 shadow-xl"
+          style={marge.g + survol * bande + bande / 2 > L / 2
+            ? { right: L - (marge.g + survol * bande + bande / 2) + 8 }
+            : { left: marge.g + survol * bande + bande / 2 + 8 }}
+        >
+          <p className="text-[10.5px] text-faible">
+            {jourCourt(courant.x)} · {formaterNombre(totalCourant)} commande{totalCourant > 1 ? "s" : ""}
+          </p>
+          {series.filter((s) => courant.valeurs[s.cle]).map((s) => (
+            <p key={s.cle} className="chiffres flex items-center gap-1.5 text-[12px] text-texte">
+              <span className="size-2 rounded-full" style={{ backgroundColor: s.couleur }} />
+              <span className="text-doux">{s.label}</span>
+              <span className="ml-auto pl-3">{((courant.valeurs[s.cle] / totalCourant) * 100).toFixed(0)} %</span>
+            </p>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
