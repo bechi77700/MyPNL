@@ -11,6 +11,7 @@ import { Metrique, MetriqueLigne } from "@/components/metrique";
 import { calculerTargets } from "@/lib/targets";
 import AlerteConnecteur, { type Renouvellement } from "@/components/alerte-connecteur";
 import { couleursPaiement, libellePaiement, type LignePaiement } from "@/lib/paiements";
+import { tauxLitiges, teinteTaux, type SyntheseLitiges } from "@/lib/chargebacks";
 
 export const dynamic = "force-dynamic";
 // Le bouton Actualiser synchronise Shopify et Meta : jusqu'a 60 s.
@@ -67,7 +68,7 @@ export default async function Dashboard({
     serie?: Serie[]; serie_avant?: Serie[]; sans_cout?: number;
     horaire?: Heure[] | null; horaire_avant?: Heure[] | null;
     renouvellements?: Renouvellement[]; derniere_synchro?: string | null;
-    paiements?: LignePaiement[];
+    paiements?: LignePaiement[]; litiges?: SyntheseLitiges;
   };
   const actuel = d.actuel ? [d.actuel] : [];
   const precedent = d.precedent ? [d.precedent] : [];
@@ -110,12 +111,17 @@ export default async function Dashboard({
   const couleursPai = couleursPaiement(paiements.map((p) => p.method));
   const qs = new URLSearchParams(Object.entries(sp).filter(([, v]) => v) as [string, string][]).toString();
 
+  const lit = d.litiges;
+  const tauxCb = tauxLitiges(lit);
+  const aRepondre = Number(lit?.a_repondre ?? 0);
+
   const repartition = [
     { label: "Coût produit", valeur: n(a.product_cost) },
     { label: "Livraison", valeur: n(a.shipping_cost) },
     { label: "Frais de transaction", valeur: n(a.transaction_fees) },
     { label: "Publicité", valeur: n(a.ad_spend) },
-    { label: "Charges", valeur: n(a.opex) + n(a.owner_salary) },
+    { label: "Charges", valeur: n(a.opex) - n(a.disputes_lost) + n(a.owner_salary) },
+    { label: "Chargebacks perdus", valeur: n(a.disputes_lost), couleur: "#8b7cf6" },
   ];
 
   return (
@@ -132,6 +138,18 @@ export default async function Dashboard({
       />
 
       <AlerteConnecteur renouvellements={(renouv ?? []) as Renouvellement[]} slug={slug} />
+
+      {aRepondre > 0 && (
+        <Carte ton="danger" className="mb-4 px-4 py-2.5">
+          <p className="text-[12.5px] text-negatif">
+            {aRepondre} chargeback{aRepondre > 1 ? "s" : ""} à contester
+            {lit?.prochaine_echeance
+              ? ` avant le ${new Date(lit.prochaine_echeance).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`
+              : ""} —{" "}
+            <Link href={`/dashboard/${slug}/chargebacks?p=tout`} className="underline underline-offset-2">voir</Link>
+          </p>
+        </Carte>
+      )}
 
       {(nbSansCout > 0 || n(a.ad_spend) === 0) && (
         <div className="mb-4 grid gap-2 sm:grid-cols-2">
@@ -212,7 +230,13 @@ export default async function Dashboard({
             <Groupe titre="Coûts">
               <MetriqueLigne icone="cout" teinte="orange" label="COGS" valeur={m(n(a.cogs))} delta={evo(n(a.cogs), n(b.cogs))} inverse />
               <MetriqueLigne icone="pub" teinte="rose" label="Dépense pub" valeur={m(n(a.ad_spend))} delta={evo(n(a.ad_spend), n(b.ad_spend))} inverse />
-              <MetriqueLigne icone="frais" teinte="neutre" label="Frais + charges" valeur={m(n(a.transaction_fees) + n(a.opex) + n(a.owner_salary))} />
+              <MetriqueLigne icone="frais" teinte="neutre" label="Frais + charges" valeur={m(n(a.transaction_fees) + n(a.opex) - n(a.disputes_lost) + n(a.owner_salary))} />
+              <Link href={`/dashboard/${slug}/chargebacks${qs ? `?${qs}` : ""}`} className="block rounded-[10px] transition-colors hover:bg-carte-haut/60">
+                <MetriqueLigne icone="remboursement" teinte={teinteTaux(tauxCb)}
+                  label={lit?.shopify_payments === false ? "Chargebacks · non suivis (hors Shopify Payments)"
+                    : `Chargebacks · ${Number(lit?.ouverts ?? 0)} ouvert${Number(lit?.ouverts ?? 0) > 1 ? "s" : ""}${tauxCb !== null ? ` · ${formaterPourcent(tauxCb, 2)}` : ""}`}
+                  valeur={`${m(n(a.disputes_lost))} perdus`} delta={evo(n(a.disputes_lost), n(b.disputes_lost))} inverse />
+              </Link>
             </Groupe>
             <Groupe titre="Résultat">
               <MetriqueLigne icone="marge" teinte="positif" label="Marge brute" valeur={m(n(a.gross_margin))} delta={evo(n(a.gross_margin), n(b.gross_margin))} />

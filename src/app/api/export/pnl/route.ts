@@ -9,7 +9,7 @@ const POSTES: [string, string][] = [
   ["Coût produit", "product_cost"], ["Livraison", "shipping_cost"], ["COGS", "cogs"],
   ["Frais de transaction", "transaction_fees"], ["Marge brute", "gross_margin"],
   ["Dépense publicitaire", "ad_spend"], ["Contribution", "contribution"],
-  ["Charges et litiges", "opex"], ["Profit net (EBITDA)", "ebitda"],
+  ["Charges et litiges", "opex"], ["dont chargebacks perdus", "disputes_lost"], ["Profit net (EBITDA)", "ebitda"],
   ["Rémunération dirigeant", "owner_salary"], ["Commandes", "orders_count"], ["Articles", "units"],
 ];
 

@@ -493,11 +493,20 @@ export async function syncPayouts(admin: Admin, creds: Creds, shopId: string) {
 
 type Dispute = {
   id: number; order_id: number | null; initiated_at: string; amount: string;
-  reason: string; status: string; currency: string;
+  reason: string; status: string; currency: string; type?: string;
+  evidence_due_by?: string | null; finalized_on?: string | null;
 };
 
-export async function syncLitiges(admin: Admin, creds: Creds, shopId: string, timezone: string) {
+export async function syncLitiges(
+  admin: Admin, creds: Creds, shopId: string, timezone: string,
+  /** Rempli avec le plus ancien jour d'un litige nouveau ou dont le statut a change. */
+  suivi?: { plusAncien?: string },
+) {
   let total = 0;
+  const { data: connus } = await admin
+    .from("shop_disputes").select("external_id, status").eq("shop_id", shopId);
+  const statuts = new Map((connus ?? []).map((d) => [d.external_id as string, d.status as string]));
+
   for await (const lot of pages<Dispute>(creds, "shopify_payments/disputes.json?limit=250", "disputes")) {
     if (!lot.length) continue;
     const lignes = lot.map((d) => ({
@@ -505,7 +514,16 @@ export async function syncLitiges(admin: Admin, creds: Creds, shopId: string, ti
       order_external_id: d.order_id ? String(d.order_id) : null,
       date: jourLocal(d.initiated_at, timezone),
       amount: nombre(d.amount), reason: d.reason, status: d.status, currency: d.currency,
+      type: d.type ?? null,
+      evidence_due_by: d.evidence_due_by ?? null,
+      finalized_on: d.finalized_on ? jourLocal(d.finalized_on, timezone) : null,
     }));
+    // Un litige perdu des semaines apres son ouverture change une journee hors de
+    // la fenetre de recalcul : sans ca, la perte n'arrivait jamais dans le P&L.
+    if (suivi)
+      for (const l of lignes)
+        if (statuts.get(l.external_id) !== l.status && (!suivi.plusAncien || l.date < suivi.plusAncien))
+          suivi.plusAncien = l.date;
     const { error } = await admin
       .from("shop_disputes")
       .upsert(lignes, { onConflict: "shop_id,external_id" });
@@ -609,6 +627,7 @@ export async function syncBoutique(
   res.rebalayage = rebalayage;
   let commandesOk = false;
   const relues: { plusAncienne?: string } = {};
+  const litiges: { plusAncien?: string } = {};
 
   const etapes: [keyof ResultatSync, () => Promise<number>][] = [
     ["commandes", async () => {
@@ -620,7 +639,7 @@ export async function syncBoutique(
     ["produits", () => syncProduits(admin, creds, shopId)],
     ["jours_frais", () => syncFrais(admin, creds, shopId, tz, depuis)],
     ["payouts", () => syncPayouts(admin, creds, shopId)],
-    ["litiges", () => syncLitiges(admin, creds, shopId, tz)],
+    ["litiges", () => syncLitiges(admin, creds, shopId, tz, litiges)],
     ["jours_sessions", () => syncSessions(admin, creds, shopId, opts.complet ? 365 : 30)],
   ];
 
@@ -655,12 +674,14 @@ export async function syncBoutique(
     // la commande, mais sa journee n'etait jamais recalculee : le remboursement
     // n'apparaissait nulle part. On elargit jusqu'a la plus ancienne relue
     // (-1 j pour le fuseau), plafonne a 400 jours.
-    if (relues.plusAncienne) {
-      const plancher = new Date(Date.now() - 400 * 86400_000).toISOString().slice(0, 10);
-      const veille = new Date(Date.parse(relues.plusAncienne) - 86400_000).toISOString().slice(0, 10);
-      const cible = veille < plancher ? plancher : veille;
+    const plancher = new Date(Date.now() - 400 * 86400_000).toISOString().slice(0, 10);
+    const elargir = (jour: string) => {
+      const cible = jour < plancher ? plancher : jour;
       if (cible < debut) debut = cible;
-    }
+    };
+    if (relues.plusAncienne)
+      elargir(new Date(Date.parse(relues.plusAncienne) - 86400_000).toISOString().slice(0, 10));
+    if (litiges.plusAncien) elargir(litiges.plusAncien);
     const fin = new Date(Date.now() + 86400_000).toISOString().slice(0, 10);
     const { data } = await admin.rpc("refresh_daily_facts", {
       p_shop: shopId, p_from: debut, p_to: fin,

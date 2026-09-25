@@ -38,6 +38,7 @@ const POSTES: Poste[] = [
   { label: "Dépense publicitaire", cle: "ad_spend", cout: true },
   { label: "Contribution", cle: "contribution", total: true },
   { label: "Charges et litiges", cle: "opex", cout: true },
+  { label: "dont chargebacks perdus", cle: "disputes_lost", cout: true, indent: true },
   { label: "Profit net (EBITDA)", cle: "ebitda", total: true },
   { label: "Rémunération dirigeant", cle: "owner_salary", cout: true },
 ];
