@@ -10,6 +10,7 @@ import { Carte, Delta, Section } from "@/components/ui";
 import { Metrique, MetriqueLigne } from "@/components/metrique";
 import { calculerTargets } from "@/lib/targets";
 import AlerteConnecteur, { type Renouvellement } from "@/components/alerte-connecteur";
+import { couleursPaiement, libellePaiement, type LignePaiement } from "@/lib/paiements";
 
 export const dynamic = "force-dynamic";
 // Le bouton Actualiser synchronise Shopify et Meta : jusqu'a 60 s.
@@ -66,6 +67,7 @@ export default async function Dashboard({
     serie?: Serie[]; serie_avant?: Serie[]; sans_cout?: number;
     horaire?: Heure[] | null; horaire_avant?: Heure[] | null;
     renouvellements?: Renouvellement[]; derniere_synchro?: string | null;
+    paiements?: LignePaiement[];
   };
   const actuel = d.actuel ? [d.actuel] : [];
   const precedent = d.precedent ? [d.precedent] : [];
@@ -102,6 +104,11 @@ export default async function Dashboard({
   const r2 = (v: number) => v.toFixed(2).replace(".", ",");
   const coutsTotaux =
     n(a.cogs) + n(a.transaction_fees) + n(a.ad_spend) + n(a.opex) + n(a.owner_salary);
+
+  const paiements = (d.paiements ?? []).map((p) => ({ method: p.method, n: n(p.orders_count) }));
+  const totalPaiements = paiements.reduce((s, p) => s + p.n, 0);
+  const couleursPai = couleursPaiement(paiements.map((p) => p.method));
+  const qs = new URLSearchParams(Object.entries(sp).filter(([, v]) => v) as [string, string][]).toString();
 
   const repartition = [
     { label: "Coût produit", valeur: n(a.product_cost) },
@@ -195,9 +202,10 @@ export default async function Dashboard({
             <Groupe titre="Ventes">
               <MetriqueLigne icone="commandes" teinte="bleu" label="Commandes" valeur={formaterNombre(n(a.orders_count))} delta={evo(n(a.orders_count), n(b.orders_count))} />
               <MetriqueLigne icone="argent" teinte="vert" label="Chiffre d'affaires" valeur={m(n(a.gross_sales))} delta={evo(n(a.gross_sales), n(b.gross_sales))} />
-              {n(a.refunds) > 0 && (
-                <MetriqueLigne icone="remboursement" teinte="rose" label="Remboursements" valeur={m(n(a.refunds))} delta={evo(n(a.refunds), n(b.refunds))} inverse />
-              )}
+              {/* Toujours affiche : masque a 0, on ne savait pas s'il manquait ou s'il n'y en avait pas. */}
+              <MetriqueLigne icone="remboursement" teinte="rose"
+                label={n(a.gross_sales) > 0 ? `Remboursements · ${formaterPourcent((n(a.refunds) / n(a.gross_sales)) * 100)} du CA` : "Remboursements"}
+                valeur={m(n(a.refunds))} delta={evo(n(a.refunds), n(b.refunds))} inverse />
               <MetriqueLigne icone="panier" teinte="jaune" label="Panier moyen" valeur={n(a.orders_count) ? m(n(a.gross_sales) / n(a.orders_count)) : "—"}
                 delta={n(a.orders_count) && n(b.orders_count) ? evo(n(a.gross_sales) / n(a.orders_count), n(b.gross_sales) / n(b.orders_count)) : null} />
             </Groupe>
@@ -224,6 +232,24 @@ export default async function Dashboard({
       >
         <div className="px-5 py-5">
           <BarreRepartition parts={repartition} total={coutsTotaux} devise={devise} />
+        </div>
+      </Section>
+
+      {/* ── Moyens de paiement ── */}
+      <Section
+        titre="Moyens de paiement"
+        className="mt-3"
+        action={
+          <Link href={`/dashboard/${slug}/payments${qs ? `?${qs}` : ""}`} className="text-[11.5px] text-accent">
+            détail →
+          </Link>
+        }
+      >
+        <div className="px-5 py-5">
+          <BarreRepartition
+            unite="nombre" total={totalPaiements} vide="Aucune commande sur la période."
+            parts={paiements.map((p) => ({ label: libellePaiement(p.method), valeur: p.n, couleur: couleursPai.get(p.method) }))}
+          />
         </div>
       </Section>
 
