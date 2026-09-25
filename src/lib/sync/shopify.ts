@@ -1,7 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decrypt } from "@/lib/crypto";
 import { SHOPIFY_API_VERSION } from "@/lib/shopify";
-import { moyenDepuisDetail, type DetailTransaction } from "@/lib/paiements";
+import {
+  moyenDepuisDetail, moyenDepuisIcone, moyenDepuisRecu, type DetailTransaction,
+} from "@/lib/paiements";
 
 type Admin = ReturnType<typeof createAdminClient>;
 type Creds = { token: string; domaine: string };
@@ -11,6 +13,7 @@ export type ResultatSync = {
   rebalayage?: boolean;
   commandes: number;
   moyens_paiement: number;
+  remboursements: number;
   produits: number;
   jours_frais: number;
   payouts: number;
@@ -126,30 +129,69 @@ async function gql<T>(creds: Creds, query: string): Promise<T> {
   return j.data as T;
 }
 
+type Remboursement = { id: string; le: string; montant: number };
+type Remboursements = Map<string, { total: number; detail: Remboursement[] }>;
+
 /**
- * Montant rembourse, en devise de la boutique.
+ * Montant rembourse, en devise de la boutique, et chaque remboursement date.
  * L'API REST ne l'expose pas de facon fiable : current_total_price_set ne bouge
  * pas apres un remboursement, et les montants des transactions sont dans la
  * devise d'achat du client. Seul totalRefundedSet.shopMoney est juste.
  */
-async function recupererRemboursements(
-  creds: Creds, ids: string[],
-): Promise<Map<string, number>> {
-  const out = new Map<string, number>();
+async function recupererRemboursements(creds: Creds, ids: string[]): Promise<Remboursements> {
+  const out: Remboursements = new Map();
+  type Montant = { shopMoney?: { amount?: string } };
   for (let i = 0; i < ids.length; i += 50) {
     const lot = ids.slice(i, i + 50);
     const gids = lot.map((id) => `"gid://shopify/Order/${id}"`).join(",");
-    const data = await gql<{ nodes: ({ id: string; totalRefundedSet?: { shopMoney?: { amount?: string } } } | null)[] }>(
+    const data = await gql<{ nodes: ({
+      id: string; totalRefundedSet?: Montant;
+      refunds?: { id: string; createdAt: string; totalRefundedSet?: Montant }[];
+    } | null)[] }>(
       creds,
-      `{ nodes(ids: [${gids}]) { ... on Order { id totalRefundedSet { shopMoney { amount } } } } }`,
+      `{ nodes(ids: [${gids}]) { ... on Order { id totalRefundedSet { shopMoney { amount } }
+          refunds(first: 20) { id createdAt totalRefundedSet { shopMoney { amount } } } } } }`,
     );
     for (const n of data.nodes ?? []) {
       if (!n?.id) continue;
-      out.set(n.id.split("/").pop()!, nombre(n.totalRefundedSet?.shopMoney?.amount));
+      out.set(n.id.split("/").pop()!, {
+        total: nombre(n.totalRefundedSet?.shopMoney?.amount),
+        detail: (n.refunds ?? [])
+          .map((r) => ({ id: r.id.split("/").pop()!, le: r.createdAt, montant: nombre(r.totalRefundedSet?.shopMoney?.amount) }))
+          .filter((r) => r.montant > 0),
+      });
     }
     await dormir(PAUSE_MS);
   }
   return out;
+}
+
+/**
+ * Enregistre les remboursements dates et marque les commandes comme detaillees.
+ * Renvoie la plus ancienne date touchee (ISO), pour elargir le recalcul.
+ */
+async function ecrireRemboursements(admin: Admin, shopId: string, remb: Remboursements) {
+  if (!remb.size) return undefined;
+  const lignes = [...remb].flatMap(([commande, r]) => r.detail.map((d) => ({
+    shop_id: shopId, refund_id: d.id, order_external_id: commande, refunded_at: d.le, amount: d.montant,
+  })));
+  for (let i = 0; i < lignes.length; i += 500) {
+    const { error } = await admin.from("order_refunds")
+      .upsert(lignes.slice(i, i + 500), { onConflict: "shop_id,refund_id" });
+    // Migration 039 pas encore passee : on garde l'ancienne regle sans rien casser.
+    if (error?.code === "PGRST205" || error?.code === "42P01") return undefined;
+    if (error) throw new Error(`upsert remboursements : ${error.message}`);
+  }
+  // Detail incomplet (ecart avec le total) : la commande garde l'ancienne regle,
+  // sinon une partie du rembourse disparaitrait du P&L.
+  const ids = [...remb].filter(([, r]) =>
+    Math.abs(r.detail.reduce((t, d) => t + d.montant, 0) - r.total) < 0.01).map(([id]) => id);
+  const { error } = await admin.rpc("set_refunds_synced", { p_shop: shopId, p_ids: ids });
+  if (error) throw new Error(`remboursements detailles : ${error.message}`);
+  return lignes.reduce<string | undefined>((min, l) => {
+    const d = new Date(l.refunded_at).toISOString();
+    return !min || d < min ? d : min;
+  }, undefined);
 }
 
 export async function syncCommandes(
@@ -218,12 +260,10 @@ export async function syncCommandes(
     const aVerifier = lignes
       .filter((l) => l.financial_status && l.financial_status !== "paid" && l.financial_status !== "pending")
       .map((l) => l.external_id);
-    if (aVerifier.length) {
-      const remb = await recupererRemboursements(creds, aVerifier);
-      for (const l of lignes) {
-        const v = remb.get(l.external_id);
-        if (v != null) l.refunded = v;
-      }
+    const remb = aVerifier.length ? await recupererRemboursements(creds, aVerifier) : new Map() as Remboursements;
+    for (const l of lignes) {
+      const v = remb.get(l.external_id);
+      if (v != null) l.refunded = v.total;
     }
 
     for (let i = 0; i < lignes.length; i += 500) {
@@ -232,6 +272,10 @@ export async function syncCommandes(
         .upsert(lignes.slice(i, i + 500), { onConflict: "shop_id,external_id" });
       if (error) throw new Error(`upsert commandes : ${error.message}`);
     }
+    // Apres l'upsert : une commande nouvelle doit exister avant d'etre marquee detaillee.
+    const plusAncienRemb = await ecrireRemboursements(admin, shopId, remb);
+    if (suivi && plusAncienRemb && (!suivi.plusAncienne || plusAncienRemb < suivi.plusAncienne))
+      suivi.plusAncienne = plusAncienRemb;
     total += lignes.length;
   }
 
@@ -246,9 +290,72 @@ export async function syncCommandes(
 }
 
 
+// ──────────────── Remboursements dates (rattrapage) ────────────────
+
+/**
+ * Commandes remboursees dont on n'a pas encore la date de chaque remboursement
+ * (historique d'avant la migration 039), les plus recentes d'abord, `max` par
+ * passe. Tant qu'une commande n'est pas detaillee, son remboursement reste au
+ * jour de la commande : rien ne se perd pendant le rattrapage.
+ */
+export async function syncRemboursementsHistorique(
+  admin: Admin, creds: Creds, shopId: string,
+  suivi: { plusAncienne?: string }, max = 250,
+) {
+  const { data, error } = await admin
+    .from("orders").select("external_id, order_date")
+    .eq("shop_id", shopId).gt("refunded", 0).eq("refunds_synced", false)
+    .order("order_date", { ascending: false }).limit(max);
+  if (error?.code === "42703") return 0; // migration 039 pas encore passee
+  if (error) throw new Error(`lecture remboursements : ${error.message}`);
+  if (!data?.length) return 0;
+
+  const remb = await recupererRemboursements(creds, data.map((o) => o.external_id as string));
+  const plusAncienRemb = await ecrireRemboursements(admin, shopId, remb);
+  // Le remboursement quitte le jour de commande pour le jour du remboursement : les deux bougent.
+  for (const d of [plusAncienRemb, ...data.map((o) => new Date(o.order_date as string).toISOString())])
+    if (d && (!suivi.plusAncienne || d < suivi.plusAncienne)) suivi.plusAncienne = d;
+  return remb.size;
+}
+
 // ──────────────── Moyens de paiement (Shopify Payments) ────────────────
 
-type TransactionGql = { kind?: string; status?: string; paymentDetails?: DetailTransaction | null };
+type TransactionGql = {
+  kind?: string; status?: string; paymentDetails?: DetailTransaction | null;
+  paymentIcon?: { altText?: string | null } | null; receiptJson?: string | null;
+};
+
+// Du plus riche au plus sobre : si un champ est refuse (scope, donnees protegees,
+// version d'API), la passe suivante le retire au lieu de tout faire echouer.
+const CHAMPS_TRANSACTION = [
+  `paymentDetails { __typename
+     ... on CardPaymentDetails { wallet }
+     ... on LocalPaymentMethodsPaymentDetails { paymentMethodName } }
+   paymentIcon { altText } receiptJson`,
+  `paymentIcon { altText } receiptJson`,
+  `paymentIcon { altText }`,
+];
+
+/** Le moyen le plus precis parmi les trois sources ; "card" seulement si rien de mieux. */
+function moyenDeTransactions(tx: TransactionGql[]) {
+  const reussies = tx.filter((t) => t.status === "SUCCESS" && ["SALE", "AUTHORIZATION", "CAPTURE"].includes(t.kind ?? ""));
+  const candidats = [...reussies, ...tx].flatMap((t) => [
+    moyenDepuisDetail(t.paymentDetails), moyenDepuisRecu(t.receiptJson), moyenDepuisIcone(t.paymentIcon?.altText),
+  ]).filter((m): m is string => !!m);
+  return candidats.find((m) => m !== "card") ?? candidats[0] ?? null;
+}
+
+/** Trace compacte de ce que Shopify a renvoye, pour comprendre un echec sans exposer le recu. */
+function trace(tx: TransactionGql[]) {
+  return tx.slice(0, 3).map((t) => {
+    let cles: string[] = [];
+    try { cles = t.receiptJson ? Object.keys(JSON.parse(t.receiptJson)).slice(0, 15) : []; } catch { /* recu illisible */ }
+    return {
+      kind: t.kind, status: t.status, details: t.paymentDetails ?? null,
+      icone: t.paymentIcon?.altText ?? null, recu_cles: cles,
+    };
+  });
+}
 
 /**
  * Shopify Payments regroupe carte, Apple Pay, Shop Pay et Klarna sous une seule
@@ -268,31 +375,37 @@ export async function syncMoyensPaiement(admin: Admin, creds: Creds, shopId: str
   const ids = (data ?? []).map((o) => o.external_id as string);
 
   let total = 0;
-  for (let i = 0; i < ids.length; i += 50) {
-    const lot = ids.slice(i, i + 50);
+  let variante = 0;
+  for (let i = 0; i < ids.length; i += 25) {
+    const lot = ids.slice(i, i + 25);
     const gids = lot.map((id) => `"gid://shopify/Order/${id}"`).join(",");
-    const res = await gql<{ nodes: ({ id: string; transactions?: TransactionGql[] } | null)[] }>(
-      creds,
-      `{ nodes(ids: [${gids}]) { ... on Order { id transactions(first: 5) { kind status paymentDetails {
-          __typename
-          ... on CardPaymentDetails { wallet }
-          ... on LocalPaymentMethodsPaymentDetails { paymentMethodName }
-        } } } } }`,
-    );
+    let res: { nodes: ({ id: string; transactions?: TransactionGql[] } | null)[] } | null = null;
+    while (!res) {
+      try {
+        res = await gql(creds, `{ nodes(ids: [${gids}]) { ... on Order { id
+          transactions(first: 5) { kind status ${CHAMPS_TRANSACTION[variante]} } } } }`);
+      } catch (e) {
+        if (++variante >= CHAMPS_TRANSACTION.length) throw e;
+      }
+    }
     const trouves = new Map<string, string>();
+    const traces = new Map<string, unknown>();
     for (const n of res.nodes ?? []) {
       if (!n?.id) continue;
-      const tx = n.transactions ?? [];
-      // La transaction encaissee fait foi ; a defaut (paiement en attente), la premiere lisible.
-      const reussies = tx.filter((t) => t.status === "SUCCESS" && ["SALE", "AUTHORIZATION", "CAPTURE"].includes(t.kind ?? ""));
-      const m = [...reussies, ...tx].map((t) => moyenDepuisDetail(t.paymentDetails)).find(Boolean);
-      if (m) trouves.set(n.id.split("/").pop()!, m);
+      const id = n.id.split("/").pop()!;
+      const m = moyenDeTransactions(n.transactions ?? []);
+      if (m) trouves.set(id, m);
+      else traces.set(id, { variante, transactions: trace(n.transactions ?? []) });
     }
     // Sans detail lisible, on garde "shopify_payments" : la commande n'est plus redemandee.
     const { error: e } = await admin.rpc("set_order_payment_methods", {
       p_shop: shopId, p_ids: lot, p_methods: lot.map((id) => trouves.get(id) ?? "shopify_payments"),
     });
     if (e) throw new Error(`moyens de paiement : ${e.message}`);
+    if (traces.size)
+      await admin.rpc("set_order_payment_raw", {
+        p_shop: shopId, p_ids: [...traces.keys()], p_raws: [...traces.values()],
+      });
     total += lot.length;
     await dormir(PAUSE_MS);
   }
@@ -599,7 +712,7 @@ export async function syncBoutique(
   const creds = await chargerCreds(admin, shopId);
   const tz = shop.timezone || "UTC";
   const res: ResultatSync = {
-    commandes: 0, moyens_paiement: 0, produits: 0, jours_frais: 0, payouts: 0, litiges: 0,
+    commandes: 0, moyens_paiement: 0, remboursements: 0, produits: 0, jours_frais: 0, payouts: 0, litiges: 0,
     jours_sessions: 0, jours_recalcules: 0, erreurs: [],
   };
 
@@ -628,6 +741,7 @@ export async function syncBoutique(
   let commandesOk = false;
   const relues: { plusAncienne?: string } = {};
   const litiges: { plusAncien?: string } = {};
+  const historique: { plusAncienne?: string } = {};
 
   const etapes: [keyof ResultatSync, () => Promise<number>][] = [
     ["commandes", async () => {
@@ -636,6 +750,7 @@ export async function syncBoutique(
       return n;
     }],
     ["moyens_paiement", () => syncMoyensPaiement(admin, creds, shopId)],
+    ["remboursements", () => syncRemboursementsHistorique(admin, creds, shopId, historique)],
     ["produits", () => syncProduits(admin, creds, shopId)],
     ["jours_frais", () => syncFrais(admin, creds, shopId, tz, depuis)],
     ["payouts", () => syncPayouts(admin, creds, shopId)],
@@ -682,6 +797,11 @@ export async function syncBoutique(
     if (relues.plusAncienne)
       elargir(new Date(Date.parse(relues.plusAncienne) - 86400_000).toISOString().slice(0, 10));
     if (litiges.plusAncien) elargir(litiges.plusAncien);
+    // Rattrapage des remboursements : des jours anciens changent, sans plafond de 400 j.
+    if (historique.plusAncienne) {
+      const jour = new Date(Date.parse(historique.plusAncienne) - 86400_000).toISOString().slice(0, 10);
+      if (jour < debut) debut = jour;
+    }
     const fin = new Date(Date.now() + 86400_000).toISOString().slice(0, 10);
     const { data } = await admin.rpc("refresh_daily_facts", {
       p_shop: shopId, p_from: debut, p_to: fin,
