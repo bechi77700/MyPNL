@@ -262,6 +262,8 @@ export async function syncMoyensPaiement(admin: Admin, creds: Creds, shopId: str
     .from("orders").select("external_id")
     .eq("shop_id", shopId).eq("gateway", "shopify_payments").is("payment_method", null)
     .order("order_date", { ascending: false }).limit(max);
+  // Migration 037 pas encore passee : on saute l'etape sans mettre le connecteur en erreur.
+  if (error?.code === "42703") return 0;
   if (error) throw new Error(`lecture moyens de paiement : ${error.message}`);
   const ids = (data ?? []).map((o) => o.external_id as string);
 
